@@ -1,22 +1,20 @@
 /*
  * @file       qr_scan_screen.dart
- * @brief      QR scanning screen to unlock a rental vehicle.
+ * @brief      QR scanning screen. Triggers the START_RENTAL workflow over MQTT
+ *             once a vehicle id is detected.
  */
 
 /* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 
-import '../models/rental_vehicle.dart';
+import '../models/error_codes.dart';
 import '../providers/mobile_auth_provider.dart';
 import '../providers/mobile_ride_provider.dart';
-import '../services/mobile_user_repo.dart';
 
 /* Constants ---------------------------------------------------------- */
 const String kQrVehiclePrefix = 'VEHICLE:';
-const LatLng kDefaultQrLocation = LatLng(10.7791, 106.6998);
 
 /* Enums -------------------------------------------------------------- */
 /* Typedef / Function types ------------------------------------------ */
@@ -65,34 +63,20 @@ class _QrScanScreenState extends State<QrScanScreen> {
     final user = auth.currentUser;
     if (user == null) return;
 
-    final RentalVehicle vehicle = ride.vehicle?.id == vehicleId
-        ? ride.vehicle!
-        : RentalVehicle(
-            id: vehicleId,
-            name: 'Xe ${vehicleId.replaceAll(RegExp(r'[^0-9]'), '')}',
-            batteryPercent: 85,
-            isLocked: true,
-            isRunning: false,
-            isPaused: false,
-            isInUse: false,
-            currentUserId: null,
-            currentSessionId: null,
-            totalKm: 0,
-            temp: 0,
-            hum: 0,
-            dust: 0,
-            lastLocation: kDefaultQrLocation,
-            updatedAt: DateTime.now(),
-          );
+    final bool enoughBalance =
+        user.balance >= ride.pricing.minimumRequiredBalance;
 
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Bạn muốn sử dụng ${vehicle.name}?'),
+        title: Text('Bạn muốn sử dụng xe $vehicleId?'),
         content: Text(
-          user.balance >= ride.pricing.minimumRequiredBalance
-              ? 'Tài khoản đủ điều kiện. Phí khởi tạo: 10.000đ / giờ + 10.000đ tiền cọc.'
-              : 'Số dư hiện tại chưa đủ 20.000đ để sử dụng xe.',
+          enoughBalance
+              ? 'Tài khoản đủ điều kiện. Phí khởi tạo: '
+                '${ride.pricing.pricePerHour}đ / giờ + '
+                '${ride.pricing.depositAmount}đ tiền cọc.'
+              : 'Số dư hiện tại chưa đủ '
+                '${ride.pricing.minimumRequiredBalance}đ để sử dụng xe.',
         ),
         actions: [
           TextButton(
@@ -100,7 +84,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
             child: const Text('Hủy'),
           ),
           FilledButton(
-            onPressed: user.balance >= ride.pricing.minimumRequiredBalance
+            onPressed: enoughBalance
                 ? () => Navigator.pop(context, true)
                 : null,
             child: const Text('Có'),
@@ -109,11 +93,18 @@ class _QrScanScreenState extends State<QrScanScreen> {
       ),
     );
 
-    if (ok == true) {
-      await context.read<MobileUserRepo>().startRide(
-        user: user,
-        vehicle: vehicle,
-        pricing: ride.pricing,
+    if (ok != true) return;
+    if (!context.mounted) return;
+
+    final bool published = await ride.startRental(bikeId: vehicleId);
+    if (!context.mounted) return;
+    if (!published) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ErrorMessages.describe(
+            ride.lastError ?? kErrUnknown,
+          )),
+        ),
       );
     }
   }

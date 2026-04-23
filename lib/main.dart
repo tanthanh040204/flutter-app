@@ -1,6 +1,7 @@
 /*
  * @file       main.dart
- * @brief      Application entry point. Initializes Firebase and wires providers.
+ * @brief      Application entry point. Initializes Firebase + MQTT and wires
+ *             providers.
  */
 
 /* Imports ------------------------------------------------------------ */
@@ -14,8 +15,10 @@ import 'providers/mobile_auth_provider.dart';
 import 'providers/mobile_notice_provider.dart';
 import 'providers/mobile_ride_provider.dart';
 import 'providers/mobile_stations_provider.dart';
+import 'providers/mobile_wallet_provider.dart';
 import 'screens/mobile_bootstrap.dart';
 import 'services/mobile_user_repo.dart';
+import 'services/mqtt_service.dart';
 
 /* Constants ---------------------------------------------------------- */
 const String kAppTitle = 'UTE-go';
@@ -32,15 +35,32 @@ class TnGoUserApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<MobileUserRepo>(create: (_) => MobileUserRepo.instance),
+        ChangeNotifierProvider<MqttService>(
+          create: (_) => MqttService(),
+          lazy: false,
+        ),
         ChangeNotifierProvider(
           create: (context) =>
               MobileAuthProvider(context.read<MobileUserRepo>()),
         ),
         ChangeNotifierProxyProvider<MobileAuthProvider, MobileRideProvider>(
+          create: (context) => MobileRideProvider(context.read<MqttService>()),
+          update: (context, auth, previous) {
+            final MobileRideProvider provider =
+                previous ?? MobileRideProvider(context.read<MqttService>());
+            provider.bindUser(auth.currentUser);
+            return provider;
+          },
+        ),
+        ChangeNotifierProxyProvider<MobileAuthProvider, MobileWalletProvider>(
           create: (context) =>
-              MobileRideProvider(context.read<MobileUserRepo>()),
-          update: (context, auth, previous) =>
-              previous!..bindUser(auth.currentUser?.uid),
+              MobileWalletProvider(context.read<MqttService>()),
+          update: (context, auth, previous) {
+            final MobileWalletProvider provider =
+                previous ?? MobileWalletProvider(context.read<MqttService>());
+            provider.bindUser(auth.currentUser);
+            return provider;
+          },
         ),
         ChangeNotifierProxyProvider<MobileAuthProvider, MobileNoticeProvider>(
           create: (context) =>

@@ -69,7 +69,7 @@ class MobileUserRepo {
   final Random _rnd = Random();
   final Map<String, _DemoAccount> _demoAccounts = {
     'demo@tngo.vn': _DemoAccount(
-      uid: 'demo_user_001',
+      uid: '1234567890',
       email: 'demo@tngo.vn',
       phone: '0900000001',
       password: '123456',
@@ -78,7 +78,7 @@ class MobileUserRepo {
       balance: kDemoSeedBalance,
     ),
     '0900000001': _DemoAccount(
-      uid: 'demo_user_001',
+      uid: '1234567890',
       email: 'demo@tngo.vn',
       phone: '0900000001',
       password: '123456',

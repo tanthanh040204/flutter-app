@@ -1,6 +1,7 @@
 /*
  * @file       wallet_topup_screen.dart
- * @brief      Wallet top-up screen that shows a bank-transfer QR code.
+ * @brief      Wallet top-up screen. Publishes REQ_ADD_TOKEN over MQTT and
+ *             reflects the RESP_ADD_TOKEN_* response back to the user.
  */
 
 /* Imports ------------------------------------------------------------ */
@@ -8,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../models/error_codes.dart';
 import '../providers/mobile_auth_provider.dart';
-import '../services/mobile_user_repo.dart';
+import '../providers/mobile_wallet_provider.dart';
+import '../config/feature_conf.dart';
 
 /* Constants ---------------------------------------------------------- */
 const String kDefaultTopupAmount = '50000';
@@ -37,7 +40,7 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
   final TextEditingController amountCtl = TextEditingController(
     text: kDefaultTopupAmount,
   );
-  bool loading = false;
+  int? _lastAppliedBalance;
 
   @override
   void dispose() {
@@ -48,8 +51,17 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<MobileAuthProvider>().currentUser;
+    final MobileWalletProvider wallet = context.watch<MobileWalletProvider>();
     final String uid = user?.uid ?? kUnknownUid;
     final String transferContent = '$kTopupPrefix$uid';
+    bool requesting = false;
+    if (!FeatureConfig.enableDebugAddToken) {
+      requesting = wallet.phase == TopupPhase.requesting;
+    } else {
+      requesting = true;
+    }
+
+    _handleStatusSideEffects(wallet);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Nạp tiền')),
@@ -92,33 +104,57 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
           SelectableText('Nội dung: $transferContent'),
           const SizedBox(height: 18),
           FilledButton(
-            onPressed: loading || user == null
+            onPressed: requesting || user == null
                 ? null
-                : () async {
-                    setState(() => loading = true);
-                    try {
-                      await context.read<MobileUserRepo>().createTopupRequest(
-                        uid: user.uid,
-                        amount: int.tryParse(amountCtl.text) ?? 0,
-                      );
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Đã tạo yêu cầu nạp tiền.'),
-                        ),
-                      );
-                    } finally {
-                      if (mounted) setState(() => loading = false);
-                    }
+                : () {
+                    final int amount = int.tryParse(amountCtl.text) ?? 0;
+                    wallet.requestAddToken(amount: amount);
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(loading ? 'Đang xử lý...' : 'Tôi đã chuyển khoản'),
+              child: Text(requesting ? 'Đang xử lý...' : 'Tôi đã chuyển khoản'),
             ),
           ),
+          if (wallet.phase == TopupPhase.success &&
+              wallet.latestBalance != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 14),
+              child: Card(
+                color: Colors.green.shade50,
+                child: ListTile(
+                  leading: const Icon(Icons.check_circle, color: Colors.green),
+                  title: const Text('Nạp tiền thành công'),
+                  subtitle: Text('Số dư mới: ${wallet.latestBalance}đ'),
+                ),
+              ),
+            ),
+          if (wallet.phase == TopupPhase.error && wallet.lastError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 14),
+              child: Card(
+                color: Colors.red.shade50,
+                child: ListTile(
+                  leading: const Icon(Icons.error, color: Colors.red),
+                  title: const Text('Nạp tiền thất bại'),
+                  subtitle: Text(ErrorMessages.describe(wallet.lastError!)),
+                ),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  void _handleStatusSideEffects(MobileWalletProvider wallet) {
+    if (wallet.phase != TopupPhase.success) return;
+    final int? balance = wallet.latestBalance;
+    if (balance == null) return;
+    if (_lastAppliedBalance == balance) return;
+    _lastAppliedBalance = balance;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<MobileAuthProvider>().updateLocalBalance(balance);
+    });
   }
 }
 
