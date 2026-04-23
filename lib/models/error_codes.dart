@@ -7,6 +7,7 @@
 /* Constants ---------------------------------------------------------- */
 
 const String kErrAccountInvalid       = 'ERR_ACCOUNT_INVALID';
+const String kErrUserNotFound         = 'ERR_USER_NOT_FOUND';
 const String kErrAccountDebt          = 'ERR_ACCOUNT_DEBT';
 const String kErrInsufficientBalance  = 'ERR_INSUFFICIENT_BALANCE';
 const String kErrBikeUnavailable      = 'ERR_BIKE_UNAVAILABLE';
@@ -30,6 +31,7 @@ class ErrorMessages {
   static String describe(String code) {
     switch (code) {
       case kErrAccountInvalid:      return 'Tài khoản không hợp lệ.';
+      case kErrUserNotFound:        return 'Người dùng không tồn tại.';
       case kErrAccountDebt:         return 'Tài khoản đang nợ cước.';
       case kErrInsufficientBalance: return 'Số dư không đủ để thuê xe.';
       case kErrBikeUnavailable:     return 'Xe không sẵn sàng để thuê.';

@@ -126,6 +126,16 @@ class MobileAuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void deductLocalBalance(int amount) {
+    final MobileUserProfile? user = _currentUser;
+    if (user == null) return;
+    if (amount <= 0) return;
+    final int nextBalance = (user.balance - amount).clamp(0, user.balance);
+    if (nextBalance == user.balance) return;
+    _currentUser = user.copyWith(balance: nextBalance);
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _profileSub?.cancel();

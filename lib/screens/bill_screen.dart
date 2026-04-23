@@ -31,7 +31,7 @@ class BillScreen extends StatelessWidget {
       locale: kCurrencyLocale,
       symbol: kCurrencySymbol,
     );
-    final bool      isViolation = bill.status != kStatusOk;
+    final _BillUiState uiState = _stateForStatus(bill.status);
     final DateFormat dateFmt    = DateFormat('HH:mm dd/MM/yyyy');
 
     return Scaffold(
@@ -42,15 +42,13 @@ class BillScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Icon(
-              isViolation ? Icons.warning_amber : Icons.check_circle,
-              color: isViolation ? Colors.orange : Colors.green,
+              uiState.icon,
+              color: uiState.iconColor,
               size: 80,
             ),
             const SizedBox(height: 12),
             Text(
-              isViolation
-                  ? 'Chuyến đi đã kết thúc (có vi phạm)'
-                  : 'Chuyến đi đã kết thúc',
+              uiState.title,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
             ),
@@ -73,14 +71,14 @@ class BillScreen extends StatelessWidget {
                 ),
               ),
             ),
-            if (isViolation) ...[
+            if (uiState.detail != null) ...[
               const SizedBox(height: 16),
               Card(
-                color: Colors.orange.shade50,
+                color: uiState.cardColor,
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Text(
-                    ErrorMessages.describe(bill.status),
+                    uiState.detail!,
                     style: const TextStyle(fontSize: 15),
                   ),
                 ),
@@ -104,8 +102,50 @@ class BillScreen extends StatelessWidget {
   }
 
   String _statusText(String status) {
-    if (status == kStatusOk) return 'Kết thúc thành công';
-    return status;
+    final _BillUiState uiState = _stateForStatus(status);
+    return uiState.statusLabel;
+  }
+
+  _BillUiState _stateForStatus(String status) {
+    switch (status) {
+      case kStatusOk:
+        return _BillUiState(
+          title: 'Chuyến đi đã kết thúc',
+          statusLabel: 'Kết thúc thành công',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+          cardColor: Colors.green.shade50,
+          detail: null,
+        );
+      case kErrTimeLimitWarning:
+        return _BillUiState(
+          title: 'Chuyến đi đã kết thúc (cảnh báo)',
+          statusLabel: 'Kết thúc khi hết thời gian cảnh báo',
+          icon: Icons.warning_amber,
+          iconColor: Colors.orange,
+          cardColor: Colors.orange.shade50,
+          detail: 'Bạn đã về bãi trong thời gian cảnh báo 15 phút.',
+        );
+      case kErrTimeLimitExceeded:
+        return _BillUiState(
+          title: 'Chuyến đi đã kết thúc (vi phạm)',
+          statusLabel: 'Vượt thời gian cảnh báo 15 phút',
+          icon: Icons.error,
+          iconColor: Colors.red,
+          cardColor: Colors.red.shade50,
+          detail:
+              'Xe vẫn ngoài bãi sau 15 phút cảnh báo. Hệ thống đã kết thúc chuyến đi và áp dụng xử lý vi phạm.',
+        );
+      default:
+        return _BillUiState(
+          title: 'Chuyến đi đã kết thúc',
+          statusLabel: status,
+          icon: Icons.info,
+          iconColor: Colors.blueGrey,
+          cardColor: Colors.blueGrey.shade50,
+          detail: ErrorMessages.describe(status),
+        );
+    }
   }
 }
 
@@ -138,6 +178,24 @@ class _Row extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BillUiState {
+  final String title;
+  final String statusLabel;
+  final IconData icon;
+  final Color iconColor;
+  final Color cardColor;
+  final String? detail;
+
+  const _BillUiState({
+    required this.title,
+    required this.statusLabel,
+    required this.icon,
+    required this.iconColor,
+    required this.cardColor,
+    required this.detail,
+  });
 }
 
 /* Public functions --------------------------------------------------- */

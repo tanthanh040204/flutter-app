@@ -37,6 +37,7 @@ class MobileHomeTab extends StatefulWidget {
 /* Private classes ---------------------------------------------------- */
 class _MobileHomeTabState extends State<MobileHomeTab> {
   bool _billShown = false;
+  DateTime? _lastDeductedBillAt;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +47,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
 
     if (user == null) return const SizedBox.shrink();
 
-    _handleRideSideEffects(ride);
+    _handleRideSideEffects(auth, ride);
 
     final NumberFormat money = NumberFormat.currency(
       locale: kCurrencyLocale,
@@ -73,8 +74,15 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     );
   }
 
-  void _handleRideSideEffects(MobileRideProvider ride) {
+  void _handleRideSideEffects(
+    MobileAuthProvider auth,
+    MobileRideProvider ride,
+  ) {
     if (ride.isEnded && ride.lastBill != null && !_billShown) {
+      if (_lastDeductedBillAt != ride.lastBill!.endedAt) {
+        auth.deductLocalBalance(ride.lastBill!.amount);
+        _lastDeductedBillAt = ride.lastBill!.endedAt;
+      }
       _billShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;

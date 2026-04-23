@@ -262,7 +262,7 @@ class MobileRideProvider extends ChangeNotifier {
   void _onEndRental(ProtocolMessage msg) {
     /* END_RENTAL=<user_id>,<bill_amount>,<status> */
     final int    amount = int.tryParse(msg.argAt(1) ?? '') ?? 0;
-    final String status = msg.argAt(2) ?? kStatusOk;
+    final String status = _normalizeEndStatus(msg.argAt(2));
     lastBill = RentalBill(
       userId:  msg.argAt(0) ?? _uid ?? '',
       amount:  amount,
@@ -308,6 +308,15 @@ class MobileRideProvider extends ChangeNotifier {
         }
       },
     );
+  }
+
+  String _normalizeEndStatus(String? rawStatus) {
+    final String normalized = (rawStatus ?? kStatusOk).trim();
+    if (normalized.isEmpty) return kStatusOk;
+    if (normalized.startsWith('status=')) {
+      return normalized.substring('status='.length).trim();
+    }
+    return normalized;
   }
 
 }
