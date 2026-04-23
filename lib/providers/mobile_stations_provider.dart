@@ -1,19 +1,47 @@
+/*
+ * @file       mobile_stations_provider.dart
+ * @brief      Provides the list of bike stations and the user's current location.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../models/station.dart';
 
+/* Constants ---------------------------------------------------------- */
+const LatLng kDefaultUserLocation = LatLng(10.7769, 106.7009);
+
+const String kVehicleStatusReady = 'Sẵn sàng';
+const String kVehicleStatusCharging = 'Đang sạc';
+const String kVehicleStatusPaused = 'Tạm ngưng';
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class MobileStationsProvider extends ChangeNotifier {
-  LatLng _currentUserLocation = const LatLng(10.7769, 106.7009);
-  List<BikeStation> _stations = [];
-
-  LatLng get currentUserLocation => _currentUserLocation;
-  List<BikeStation> get stations => _stations;
-
   MobileStationsProvider() {
     _loadDemoStations();
   }
 
+  /* --- private fields ------------------------------------------ */
+  LatLng _currentUserLocation = kDefaultUserLocation;
+  List<BikeStation> _stations = [];
+
+  /* --- public getters ------------------------------------------ */
+  LatLng get currentUserLocation => _currentUserLocation;
+  List<BikeStation> get stations => _stations;
+
+  /* --- public methods ------------------------------------------ */
+  Future<void> refreshUserLocation() async {
+    /* Demo build: keep location at District 1 so stations are visible. */
+    /* TODO: hook up the real geolocator later. */
+    _currentUserLocation = kDefaultUserLocation;
+    notifyListeners();
+  }
+
+  /* --- private methods ----------------------------------------- */
   void _loadDemoStations() {
     _stations = const [
       BikeStation(
@@ -29,17 +57,17 @@ class MobileStationsProvider extends ChangeNotifier {
           StationVehicleInfo(
             code: 'X72B-22.600',
             batteryPercent: 94,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X51A-21.300',
             batteryPercent: 72,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X51B-21.368',
             batteryPercent: 68,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
         ],
       ),
@@ -56,17 +84,17 @@ class MobileStationsProvider extends ChangeNotifier {
           StationVehicleInfo(
             code: 'X51V-21.888',
             batteryPercent: 17,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X51C-21.123',
             batteryPercent: 23,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X51U-21.444',
             batteryPercent: 99,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
         ],
       ),
@@ -84,17 +112,17 @@ class MobileStationsProvider extends ChangeNotifier {
           StationVehicleInfo(
             code: 'X73A-23.001',
             batteryPercent: 88,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X73A-23.002',
             batteryPercent: 75,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X73A-23.003',
             batteryPercent: 52,
-            status: 'Đang sạc',
+            status: kVehicleStatusCharging,
           ),
         ],
       ),
@@ -112,12 +140,12 @@ class MobileStationsProvider extends ChangeNotifier {
           StationVehicleInfo(
             code: 'X61A-20.501',
             batteryPercent: 81,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X61A-20.502',
             batteryPercent: 64,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
         ],
       ),
@@ -134,17 +162,17 @@ class MobileStationsProvider extends ChangeNotifier {
           StationVehicleInfo(
             code: 'X62B-19.800',
             batteryPercent: 96,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X62B-19.801',
             batteryPercent: 45,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X62B-19.802',
             batteryPercent: 33,
-            status: 'Tạm ngưng',
+            status: kVehicleStatusPaused,
           ),
         ],
       ),
@@ -162,7 +190,7 @@ class MobileStationsProvider extends ChangeNotifier {
           StationVehicleInfo(
             code: 'X66A-18.120',
             batteryPercent: 55,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
         ],
       ),
@@ -179,17 +207,17 @@ class MobileStationsProvider extends ChangeNotifier {
           StationVehicleInfo(
             code: 'X70A-22.001',
             batteryPercent: 89,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X70A-22.002',
             batteryPercent: 92,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X70A-22.003',
             batteryPercent: 21,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
         ],
       ),
@@ -206,12 +234,12 @@ class MobileStationsProvider extends ChangeNotifier {
           StationVehicleInfo(
             code: 'X80A-20.010',
             batteryPercent: 77,
-            status: 'Sẵn sàng',
+            status: kVehicleStatusReady,
           ),
           StationVehicleInfo(
             code: 'X80A-20.011',
             batteryPercent: 59,
-            status: 'Đang sạc',
+            status: kVehicleStatusCharging,
           ),
         ],
       ),
@@ -219,11 +247,10 @@ class MobileStationsProvider extends ChangeNotifier {
 
     notifyListeners();
   }
-
-  Future<void> refreshUserLocation() async {
-    // Bản demo: giữ vị trí ở Quận 1 để nhìn rõ các trạm.
-    // Sau này nếu bạn muốn, mình sẽ nối lại geolocator thật.
-    _currentUserLocation = const LatLng(10.7769, 106.7009);
-    notifyListeners();
-  }
 }
+
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

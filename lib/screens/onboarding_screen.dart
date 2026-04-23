@@ -1,8 +1,22 @@
+/*
+ * @file       onboarding_screen.dart
+ * @brief      Three-page onboarding carousel shown before login.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/mobile_auth_provider.dart';
 
+/* Constants ---------------------------------------------------------- */
+const Duration kPageAnimDuration = Duration(milliseconds: 250);
+const Duration kDotAnimDuration = Duration(milliseconds: 200);
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -10,11 +24,12 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
+/* Private classes ---------------------------------------------------- */
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final _controller = PageController();
+  final PageController _controller = PageController();
   int _index = 0;
 
-  final _pages = const [
+  final List<_OnboardData> _pages = const [
     _OnboardData(
       title: 'Xe đạp công cộng - Đi bất kỳ đâu',
       desc:
@@ -49,7 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   itemCount: _pages.length,
                   onPageChanged: (i) => setState(() => _index = i),
                   itemBuilder: (_, i) {
-                    final page = _pages[i];
+                    final _OnboardData page = _pages[i];
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -84,9 +99,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(_pages.length, (i) {
-                  final active = i == _index;
+                  final bool active = i == _index;
                   return AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                    duration: kDotAnimDuration,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     width: active ? 20 : 10,
                     height: 10,
@@ -105,7 +120,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       onPressed: _index == 0
                           ? null
                           : () => _controller.previousPage(
-                              duration: const Duration(milliseconds: 250),
+                              duration: kPageAnimDuration,
                               curve: Curves.easeOut,
                             ),
                       child: const Text('Trước đó'),
@@ -116,7 +131,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       onPressed: _index == _pages.length - 1
                           ? null
                           : () => _controller.nextPage(
-                              duration: const Duration(milliseconds: 250),
+                              duration: kPageAnimDuration,
                               curve: Curves.easeOut,
                             ),
                       child: const Text('Tiếp theo'),
@@ -179,3 +194,8 @@ class _OnboardData {
     required this.icon,
   });
 }
+
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

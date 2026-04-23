@@ -1,3 +1,9 @@
+/*
+ * @file       wallet_topup_screen.dart
+ * @brief      Wallet top-up screen that shows a bank-transfer QR code.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -5,6 +11,20 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../providers/mobile_auth_provider.dart';
 import '../services/mobile_user_repo.dart';
 
+/* Constants ---------------------------------------------------------- */
+const String kDefaultTopupAmount = '50000';
+const String kTopupPrefix = 'NAPTIEN_';
+const String kUnknownUid = 'unknown';
+const String kBankName = 'UTE Bank';
+const String kBankAccount = '0123456789';
+const String kBankAccountHolder = 'CONG TY UTE';
+const String kBankCode = 'MB';
+const String kBankTransferCompany = 'CONG TY ABC';
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class WalletTopupScreen extends StatefulWidget {
   const WalletTopupScreen({super.key});
 
@@ -12,8 +32,11 @@ class WalletTopupScreen extends StatefulWidget {
   State<WalletTopupScreen> createState() => _WalletTopupScreenState();
 }
 
+/* Private classes ---------------------------------------------------- */
 class _WalletTopupScreenState extends State<WalletTopupScreen> {
-  final amountCtl = TextEditingController(text: '50000');
+  final TextEditingController amountCtl = TextEditingController(
+    text: kDefaultTopupAmount,
+  );
   bool loading = false;
 
   @override
@@ -25,19 +48,23 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<MobileAuthProvider>().currentUser;
-    final uid = user?.uid ?? 'unknown';
-    final transferContent = 'NAPTIEN_$uid';
+    final String uid = user?.uid ?? kUnknownUid;
+    final String transferContent = '$kTopupPrefix$uid';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Nạp tiền')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Chuyển khoản theo QR bên dưới', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          const Text(
+            'Chuyển khoản theo QR bên dưới',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 16),
           Center(
             child: QrImageView(
-              data: 'bank://MB/0123456789/CONG TY ABC/$transferContent',
+              data:
+                  'bank://$kBankCode/$kBankAccount/$kBankTransferCompany/$transferContent',
               size: 220,
             ),
           ),
@@ -48,9 +75,9 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ngân hàng: UTE Bank'),
-                  Text('Số tài khoản: 0123456789'),
-                  Text('Tên tài khoản: CONG TY UTE'),
+                  Text('Ngân hàng: $kBankName'),
+                  Text('Số tài khoản: $kBankAccount'),
+                  Text('Tên tài khoản: $kBankAccountHolder'),
                 ],
               ),
             ),
@@ -71,12 +98,14 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
                     setState(() => loading = true);
                     try {
                       await context.read<MobileUserRepo>().createTopupRequest(
-                            uid: user.uid,
-                            amount: int.tryParse(amountCtl.text) ?? 0,
-                          );
+                        uid: user.uid,
+                        amount: int.tryParse(amountCtl.text) ?? 0,
+                      );
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đã tạo yêu cầu nạp tiền.')),
+                        const SnackBar(
+                          content: Text('Đã tạo yêu cầu nạp tiền.'),
+                        ),
                       );
                     } finally {
                       if (mounted) setState(() => loading = false);
@@ -86,9 +115,14 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               child: Text(loading ? 'Đang xử lý...' : 'Tôi đã chuyển khoản'),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 }
+
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

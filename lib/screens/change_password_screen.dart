@@ -1,8 +1,19 @@
+/*
+ * @file       change_password_screen.dart
+ * @brief      Screen for the user to change their account password.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/mobile_auth_provider.dart';
 
+/* Constants ---------------------------------------------------------- */
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -10,9 +21,10 @@ class ChangePasswordScreen extends StatefulWidget {
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
 }
 
+/* Private classes ---------------------------------------------------- */
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  final currentCtl = TextEditingController();
-  final newCtl = TextEditingController();
+  final TextEditingController currentCtl = TextEditingController();
+  final TextEditingController newCtl = TextEditingController();
   bool loading = false;
 
   @override
@@ -29,9 +41,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          TextField(controller: currentCtl, obscureText: true, decoration: const InputDecoration(labelText: 'Mật khẩu hiện tại')),
+          TextField(
+            controller: currentCtl,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Mật khẩu hiện tại'),
+          ),
           const SizedBox(height: 12),
-          TextField(controller: newCtl, obscureText: true, decoration: const InputDecoration(labelText: 'Mật khẩu mới')),
+          TextField(
+            controller: newCtl,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Mật khẩu mới'),
+          ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: loading
@@ -40,19 +60,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     setState(() => loading = true);
                     try {
                       await context.read<MobileAuthProvider>().changePassword(
-                            currentPassword: currentCtl.text,
-                            newPassword: newCtl.text,
-                          );
+                        currentPassword: currentCtl.text,
+                        newPassword: newCtl.text,
+                      );
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đổi mật khẩu thành công.')),
+                        const SnackBar(
+                          content: Text('Đổi mật khẩu thành công.'),
+                        ),
                       );
                       Navigator.pop(context);
                     } catch (e) {
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(e.toString())),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(e.toString())));
                     } finally {
                       if (mounted) setState(() => loading = false);
                     }
@@ -67,3 +89,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 }
+
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

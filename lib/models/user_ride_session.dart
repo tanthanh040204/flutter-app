@@ -1,3 +1,20 @@
+/*
+ * @file       user_ride_session.dart
+ * @brief      Data model representing an ongoing or completed ride session.
+ */
+
+/* Imports ------------------------------------------------------------ */
+/* Constants ---------------------------------------------------------- */
+
+const String kRideStatusActive = 'active';
+const String kRideStatusPaused = 'paused';
+const String kRideStatusEnded = 'ended';
+const String kRideStatusExpired = 'expired';
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class UserRideSession {
   final String sessionId;
   final String uid;
@@ -45,7 +62,14 @@ class UserRideSession {
     required this.routeIds,
   });
 
-  bool get isActive => status == 'active';
-  bool get isPaused => status == 'paused';
-  bool get isEnded => status == 'ended' || status == 'expired';
+  bool get isActive => status == kRideStatusActive;
+  bool get isPaused => status == kRideStatusPaused;
+  bool get isEnded =>
+      status == kRideStatusEnded || status == kRideStatusExpired;
 }
+
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

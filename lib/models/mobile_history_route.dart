@@ -1,5 +1,16 @@
+/*
+ * @file       mobile_history_route.dart
+ * @brief      Data model representing a recorded ride history route.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:latlong2/latlong.dart';
 
+/* Constants ---------------------------------------------------------- */
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class MobileHistoryRoute {
   final String id;
   final String vehicleId;
@@ -15,12 +26,22 @@ class MobileHistoryRoute {
     required this.points,
   });
 
-  String _two(int n) => n.toString().padLeft(2, '0');
-
   String get buttonLabel {
-    final start = '${_two(startAt.hour)}h${_two(startAt.minute)}-${_two(startAt.day)}/${_two(startAt.month)}';
+    final String start =
+        '${_two(startAt.hour)}h${_two(startAt.minute)}'
+        '-${_two(startAt.day)}/${_two(startAt.month)}';
     if (endAt == null) return 'Lộ trình $start';
-    final end = '${_two(endAt!.hour)}h${_two(endAt!.minute)}-${_two(endAt!.day)}/${_two(endAt!.month)}';
+    final String end =
+        '${_two(endAt!.hour)}h${_two(endAt!.minute)}'
+        '-${_two(endAt!.day)}/${_two(endAt!.month)}';
     return 'Lộ trình $start đến $end';
   }
+
+  String _two(int n) => n.toString().padLeft(2, '0');
 }
+
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

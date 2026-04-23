@@ -1,3 +1,9 @@
+/*
+ * @file       main.dart
+ * @brief      Application entry point. Initializes Firebase and wires providers.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +17,54 @@ import 'providers/mobile_stations_provider.dart';
 import 'screens/mobile_bootstrap.dart';
 import 'services/mobile_user_repo.dart';
 
+/* Constants ---------------------------------------------------------- */
+const String kAppTitle = 'UTE-go';
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
+class TnGoUserApp extends StatelessWidget {
+  const TnGoUserApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        Provider<MobileUserRepo>(create: (_) => MobileUserRepo.instance),
+        ChangeNotifierProvider(
+          create: (context) =>
+              MobileAuthProvider(context.read<MobileUserRepo>()),
+        ),
+        ChangeNotifierProxyProvider<MobileAuthProvider, MobileRideProvider>(
+          create: (context) =>
+              MobileRideProvider(context.read<MobileUserRepo>()),
+          update: (context, auth, previous) =>
+              previous!..bindUser(auth.currentUser?.uid),
+        ),
+        ChangeNotifierProxyProvider<MobileAuthProvider, MobileNoticeProvider>(
+          create: (context) =>
+              MobileNoticeProvider(context.read<MobileUserRepo>()),
+          update: (context, auth, previous) =>
+              previous!..bindUser(auth.currentUser?.uid),
+        ),
+        ChangeNotifierProvider(create: (_) => MobileStationsProvider()),
+      ],
+      child: MaterialApp(
+        title: kAppTitle,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        home: const MobileBootstrap(),
+      ),
+    );
+  }
+}
+
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+
+/* Entry point -------------------------------------------------------- */
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -19,51 +73,10 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (_) {
-    // fallback demo mode
+    /* fallback demo mode */
   }
 
   runApp(const TnGoUserApp());
 }
 
-class TnGoUserApp extends StatelessWidget {
-  const TnGoUserApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        Provider<MobileUserRepo>(
-          create: (_) => MobileUserRepo.instance,
-        ),
-        ChangeNotifierProvider(
-          create: (context) => MobileAuthProvider(
-            context.read<MobileUserRepo>(),
-          ),
-        ),
-        ChangeNotifierProxyProvider<MobileAuthProvider, MobileRideProvider>(
-          create: (context) => MobileRideProvider(
-            context.read<MobileUserRepo>(),
-          ),
-          update: (context, auth, previous) =>
-              previous!..bindUser(auth.currentUser?.uid),
-        ),
-        ChangeNotifierProxyProvider<MobileAuthProvider, MobileNoticeProvider>(
-          create: (context) => MobileNoticeProvider(
-            context.read<MobileUserRepo>(),
-          ),
-          update: (context, auth, previous) =>
-              previous!..bindUser(auth.currentUser?.uid),
-        ),
-     ChangeNotifierProvider(
-  create: (_) => MobileStationsProvider(),
-),
-      ],
-      child: MaterialApp(
-        title: 'UTE-go',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const MobileBootstrap(),
-      ),
-    );
-  }
-}
+/* End of file -------------------------------------------------------- */

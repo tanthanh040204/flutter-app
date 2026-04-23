@@ -1,5 +1,16 @@
+/*
+ * @file       station.dart
+ * @brief      Bike station and station vehicle data models.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:latlong2/latlong.dart';
 
+/* Constants ---------------------------------------------------------- */
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class StationVehicleInfo {
   final String code;
   final int batteryPercent;
@@ -37,3 +48,9 @@ class BikeStation {
     this.isActive = true,
   });
 }
+
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

@@ -1,3 +1,10 @@
+/*
+ * @file       mobile_user_repo.dart
+ * @brief      Single repository facade for authentication, wallet, ride
+ *             sessions and demo fallbacks when Firebase is not configured.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'dart:async';
 import 'dart:math';
 
@@ -5,21 +12,61 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
-import '../models/station.dart';
 import '../models/mobile_history_route.dart';
 import '../models/mobile_user_profile.dart';
 import '../models/pricing_config.dart';
 import '../models/rental_vehicle.dart';
+import '../models/station.dart';
 import '../models/user_notice.dart';
 import '../models/user_ride_session.dart';
 
+/* Constants ---------------------------------------------------------- */
+/* --- Firestore collection names ---------------------------------- */
+const String kColUsers = 'users';
+const String kColStations = 'stations';
+const String kColRideSessions = 'ride_sessions';
+const String kColVehicles = 'vehicles';
+const String kColNotifications = 'notifications';
+const String kColVehicleCommands = 'vehicle_commands';
+const String kColWalletTopups = 'wallet_topups';
+const String kColWalletTxs = 'wallet_transactions';
+const String kColLoginEvents = 'login_events';
+const String kColAppConfigs = 'app_configs';
+const String kDocPricing = 'pricing';
+
+/* --- Pricing defaults ------------------------------------------- */
+const int kDefaultPricePerHour = 10000;
+const int kDefaultDepositAmount = 10000;
+const int kDefaultMinimumRequiredBalance = 20000;
+const int kDefaultLowBatteryThreshold = 20;
+const int kInitialRemainingSeconds = 3600;
+
+/* --- Balance defaults ------------------------------------------- */
+const int kDemoSeedBalance = 120000;
+const int kNewUserSeedBalance = 30000;
+
+/* --- Status strings --------------------------------------------- */
+const String kStatusPending = 'pending';
+const String kStatusActive = 'active';
+const String kStatusPaused = 'paused';
+const String kStatusEnded = 'ended';
+
+/* --- Project / demo -------------------------------------------- */
+const String kDemoProjectId = 'demo-project';
+const String kNoticeQueryLimit = '50';
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class MobileUserRepo {
   MobileUserRepo._();
+
   static final MobileUserRepo instance = MobileUserRepo._();
 
-  final _rnd = Random();
+  /* --- private fields ------------------------------------------ */
+  final Random _rnd = Random();
   final Map<String, _DemoAccount> _demoAccounts = {
     'demo@tngo.vn': _DemoAccount(
       uid: 'demo_user_001',
@@ -28,7 +75,7 @@ class MobileUserRepo {
       password: '123456',
       employeeCode: 'NV001',
       fullName: 'Nguyễn Cao Tấn Thành',
-      balance: 120000,
+      balance: kDemoSeedBalance,
     ),
     '0900000001': _DemoAccount(
       uid: 'demo_user_001',
@@ -37,7 +84,7 @@ class MobileUserRepo {
       password: '123456',
       employeeCode: 'NV001',
       fullName: 'Nguyễn Cao Tấn Thành',
-      balance: 120000,
+      balance: kDemoSeedBalance,
     ),
   };
   final Map<String, StreamController<MobileUserProfile>> _demoProfiles = {};
@@ -64,107 +111,114 @@ class MobileUserRepo {
       hum: 78.1,
       dust: 16.0,
       lastLocation: const LatLng(10.7791, 106.6998),
-      updatedAt: DateTime.now(),
+      updatedAt: _bootTime,
     ),
   };
 
+  /* Snapshot of construction time for initial vehicle timestamp (singleton). */
+  static final DateTime _bootTime = DateTime.now();
+
+  final PricingConfig _demoPricing = const PricingConfig(
+    pricePerHour: kDefaultPricePerHour,
+    depositAmount: kDefaultDepositAmount,
+    minimumRequiredBalance: kDefaultMinimumRequiredBalance,
+    lowBatteryThreshold: kDefaultLowBatteryThreshold,
+  );
+
+  /* --- private getters ----------------------------------------- */
   bool get _isReady => Firebase.apps.isNotEmpty;
+
   bool get _useLocalDemo {
     if (!_isReady) return true;
     try {
       return Firebase.app().options.projectId.trim().toLowerCase() ==
-          'demo-project';
+          kDemoProjectId;
     } catch (_) {
       return true;
     }
   }
 
-  FirebaseFirestore? get _db => _useLocalDemo ? null : FirebaseFirestore.instance;
+  FirebaseFirestore? get _db =>
+      _useLocalDemo ? null : FirebaseFirestore.instance;
   FirebaseAuth? get _auth => _useLocalDemo ? null : FirebaseAuth.instance;
 
-  final PricingConfig _demoPricing = const PricingConfig(
-    pricePerHour: 10000,
-    depositAmount: 10000,
-    minimumRequiredBalance: 20000,
-    lowBatteryThreshold: 20,
-  );
-
   List<BikeStation> get _seedStations => const [
-        BikeStation(
-          id: 'ST_HCM_001',
-          name: 'Công viên 30/4',
-          city: 'TP.HCM',
-          address: 'Lê Duẩn, Bến Nghé, Quận 1, TP.HCM',
-          point: LatLng(10.7791, 106.6998),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=10.7791,106.6998',
-          bikeCount: 10,
-          availableSlots: 6,
-          isActive: true,
-        ),
-        BikeStation(
-          id: 'ST_HCM_002',
-          name: 'Công viên Tao Đàn',
-          city: 'TP.HCM',
-          address: 'Trương Định, Bến Thành, Quận 1, TP.HCM',
-          point: LatLng(10.7769, 106.6918),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=10.7769,106.6918',
-          bikeCount: 13,
-          availableSlots: 2,
-          isActive: true,
-        ),
-        BikeStation(
-          id: 'ST_HCM_003',
-          name: 'Trống Đồng',
-          city: 'TP.HCM',
-          address: '12B CMT8, Bến Thành, Quận 1, TP.HCM',
-          point: LatLng(10.7760, 106.6942),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=10.7760,106.6942',
-          bikeCount: 13,
-          availableSlots: 6,
-          isActive: true,
-        ),
-        BikeStation(
-          id: 'ST_HN_001',
-          name: 'Hồ Gươm',
-          city: 'Hà Nội',
-          address: 'Hoàn Kiếm, Hà Nội',
-          point: LatLng(21.0287, 105.8522),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=21.0287,105.8522',
-          bikeCount: 9,
-          availableSlots: 8,
-          isActive: true,
-        ),
-        BikeStation(
-          id: 'ST_HN_002',
-          name: 'Nhà hát Lớn',
-          city: 'Hà Nội',
-          address: 'Tràng Tiền, Hoàn Kiếm, Hà Nội',
-          point: LatLng(21.0245, 105.8570),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=21.0245,105.8570',
-          bikeCount: 7,
-          availableSlots: 4,
-          isActive: true,
-        ),
-      ];
+    BikeStation(
+      id: 'ST_HCM_001',
+      name: 'Công viên 30/4',
+      city: 'TP.HCM',
+      address: 'Lê Duẩn, Bến Nghé, Quận 1, TP.HCM',
+      point: LatLng(10.7791, 106.6998),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=10.7791,106.6998',
+      bikeCount: 10,
+      availableSlots: 6,
+      isActive: true,
+    ),
+    BikeStation(
+      id: 'ST_HCM_002',
+      name: 'Công viên Tao Đàn',
+      city: 'TP.HCM',
+      address: 'Trương Định, Bến Thành, Quận 1, TP.HCM',
+      point: LatLng(10.7769, 106.6918),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=10.7769,106.6918',
+      bikeCount: 13,
+      availableSlots: 2,
+      isActive: true,
+    ),
+    BikeStation(
+      id: 'ST_HCM_003',
+      name: 'Trống Đồng',
+      city: 'TP.HCM',
+      address: '12B CMT8, Bến Thành, Quận 1, TP.HCM',
+      point: LatLng(10.7760, 106.6942),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=10.7760,106.6942',
+      bikeCount: 13,
+      availableSlots: 6,
+      isActive: true,
+    ),
+    BikeStation(
+      id: 'ST_HN_001',
+      name: 'Hồ Gươm',
+      city: 'Hà Nội',
+      address: 'Hoàn Kiếm, Hà Nội',
+      point: LatLng(21.0287, 105.8522),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=21.0287,105.8522',
+      bikeCount: 9,
+      availableSlots: 8,
+      isActive: true,
+    ),
+    BikeStation(
+      id: 'ST_HN_002',
+      name: 'Nhà hát Lớn',
+      city: 'Hà Nội',
+      address: 'Tràng Tiền, Hoàn Kiếm, Hà Nội',
+      point: LatLng(21.0245, 105.8570),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=21.0245,105.8570',
+      bikeCount: 7,
+      availableSlots: 4,
+      isActive: true,
+    ),
+  ];
 
+  /* --- public methods (auth) ----------------------------------- */
   Future<MobileUserProfile> signIn({
     required String identifier,
     required String password,
     required bool usePhone,
   }) async {
     if (_useLocalDemo) {
-      final account = _demoAccounts[identifier.trim()];
+      final _DemoAccount? account = _demoAccounts[identifier.trim()];
       if (account == null || account.password != password.trim()) {
         throw Exception('Thông tin đăng nhập không đúng.');
       }
-      final profile = _demoProfileFromAccount(account).copyWith(
-        lastLoginAt: DateTime.now(),
-      );
+      final MobileUserProfile profile = _demoProfileFromAccount(
+        account,
+      ).copyWith(lastLoginAt: DateTime.now());
       _pushDemoProfile(profile);
       await addLoginEvent(profile.employeeCode);
       return profile;
@@ -176,13 +230,13 @@ class MobileUserRepo {
       );
     }
 
-    final cred = await _auth!.signInWithEmailAndPassword(
+    final UserCredential cred = await _auth!.signInWithEmailAndPassword(
       email: identifier.trim(),
       password: password.trim(),
     );
 
-    final uid = cred.user!.uid;
-    final profile = await getOrCreateUserProfile(
+    final String uid = cred.user!.uid;
+    final MobileUserProfile profile = await getOrCreateUserProfile(
       uid: uid,
       email: cred.user!.email,
       phone: cred.user!.phoneNumber,
@@ -201,18 +255,18 @@ class MobileUserRepo {
     required bool usePhone,
   }) async {
     if (_useLocalDemo) {
-      final uid = 'demo_${DateTime.now().millisecondsSinceEpoch}';
-      final account = _DemoAccount(
+      final String uid = 'demo_${DateTime.now().millisecondsSinceEpoch}';
+      final _DemoAccount account = _DemoAccount(
         uid: uid,
         email: usePhone ? null : identifier.trim(),
         phone: usePhone ? identifier.trim() : null,
         password: password.trim(),
         employeeCode: employeeCode.trim(),
         fullName: fullName.trim(),
-        balance: 30000,
+        balance: kNewUserSeedBalance,
       );
       _demoAccounts[identifier.trim()] = account;
-      final profile = _demoProfileFromAccount(account);
+      final MobileUserProfile profile = _demoProfileFromAccount(account);
       _pushDemoProfile(profile);
       await addLoginEvent(profile.employeeCode);
       return profile;
@@ -224,20 +278,20 @@ class MobileUserRepo {
       );
     }
 
-    final cred = await _auth!.createUserWithEmailAndPassword(
+    final UserCredential cred = await _auth!.createUserWithEmailAndPassword(
       email: identifier.trim(),
       password: password.trim(),
     );
 
-    final uid = cred.user!.uid;
-    final profile = MobileUserProfile(
+    final String uid = cred.user!.uid;
+    final MobileUserProfile profile = MobileUserProfile(
       uid: uid,
       employeeCode: employeeCode.trim(),
       fullName: fullName.trim(),
       phone: null,
       email: identifier.trim(),
       role: 'user',
-      balance: 30000,
+      balance: kNewUserSeedBalance,
       depositLocked: 0,
       isActive: true,
       currentSessionId: null,
@@ -259,26 +313,28 @@ class MobileUserRepo {
     required String? phone,
     required String fullName,
   }) async {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) {
-      final account = _demoAccounts.values.first;
+      final _DemoAccount account = _demoAccounts.values.first;
       return _demoProfileFromAccount(account);
     }
 
-    final ref = db.collection('users').doc(uid);
-    final snap = await ref.get();
+    final DocumentReference<Map<String, dynamic>> ref = db
+        .collection(kColUsers)
+        .doc(uid);
+    final DocumentSnapshot<Map<String, dynamic>> snap = await ref.get();
     if (snap.exists) {
       return _profileFromDoc(snap);
     }
 
-    final profile = MobileUserProfile(
+    final MobileUserProfile profile = MobileUserProfile(
       uid: uid,
       employeeCode: 'NV${1000 + _rnd.nextInt(9000)}',
       fullName: fullName,
       phone: phone,
       email: email,
       role: 'user',
-      balance: 30000,
+      balance: kNewUserSeedBalance,
       depositLocked: 0,
       isActive: true,
       currentSessionId: null,
@@ -289,14 +345,42 @@ class MobileUserRepo {
     return profile;
   }
 
+  Future<void> changePassword({
+    required String uid,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    if (_db == null) {
+      final _DemoAccount account = _demoAccounts.values.firstWhere(
+        (e) => e.uid == uid,
+      );
+      if (account.password != currentPassword.trim()) {
+        throw Exception('Mật khẩu hiện tại không đúng.');
+      }
+      _replaceDemoAccount(account.copyWith(password: newPassword.trim()));
+      return;
+    }
+    final User? user = _auth!.currentUser;
+    if (user == null || user.email == null) {
+      throw Exception('Không thể đổi mật khẩu ở tài khoản hiện tại.');
+    }
+    final AuthCredential cred = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword.trim(),
+    );
+    await user.reauthenticateWithCredential(cred);
+    await user.updatePassword(newPassword.trim());
+  }
+
+  /* --- public methods (streams) -------------------------------- */
   Stream<MobileUserProfile?> watchUserProfile(String uid) {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) {
-      final ctl = _demoProfiles.putIfAbsent(
+      final StreamController<MobileUserProfile> ctl = _demoProfiles.putIfAbsent(
         uid,
         () => StreamController<MobileUserProfile>.broadcast(),
       );
-      final account = _demoAccounts.values.firstWhere(
+      final _DemoAccount account = _demoAccounts.values.firstWhere(
         (e) => e.uid == uid,
         orElse: () => _demoAccounts.values.first,
       );
@@ -304,45 +388,53 @@ class MobileUserRepo {
       return ctl.stream;
     }
 
-    return db.collection('users').doc(uid).snapshots().map((doc) {
+    return db.collection(kColUsers).doc(uid).snapshots().map((doc) {
       if (!doc.exists) return null;
       return _profileFromDoc(doc);
     });
   }
 
   Stream<PricingConfig> watchPricing() {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) {
       return Stream.value(_demoPricing);
     }
-    return db.collection('app_configs').doc('pricing').snapshots().map((doc) {
-      final m = doc.data() ?? {};
+    return db.collection(kColAppConfigs).doc(kDocPricing).snapshots().map((
+      doc,
+    ) {
+      final Map<String, dynamic> m = doc.data() ?? {};
       return PricingConfig(
-        pricePerHour: _asInt(m['pricePerHour'], 10000),
-        depositAmount: _asInt(m['depositAmount'], 10000),
-        minimumRequiredBalance: _asInt(m['minimumRequiredBalance'], 20000),
-        lowBatteryThreshold: _asInt(m['lowBatteryThreshold'], 20),
+        pricePerHour: _asInt(m['pricePerHour'], kDefaultPricePerHour),
+        depositAmount: _asInt(m['depositAmount'], kDefaultDepositAmount),
+        minimumRequiredBalance: _asInt(
+          m['minimumRequiredBalance'],
+          kDefaultMinimumRequiredBalance,
+        ),
+        lowBatteryThreshold: _asInt(
+          m['lowBatteryThreshold'],
+          kDefaultLowBatteryThreshold,
+        ),
       );
     });
   }
 
   Stream<List<BikeStation>> watchStations() {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) {
       Future.microtask(() => _demoStationsCtl.add(_seedStations));
       return _demoStationsCtl.stream;
     }
-    return db.collection('stations').where('isActive', isEqualTo: true).snapshots().map(
-      (snap) {
-        return snap.docs.map((doc) => _stationFromDoc(doc)).toList();
-      },
-    );
+    return db
+        .collection(kColStations)
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snap) => snap.docs.map((doc) => _stationFromDoc(doc)).toList());
   }
 
   Stream<UserRideSession?> watchCurrentSession(String uid) {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) {
-      final ctl = _demoSessions.putIfAbsent(
+      final StreamController<UserRideSession?> ctl = _demoSessions.putIfAbsent(
         uid,
         () => StreamController<UserRideSession?>.broadcast(),
       );
@@ -350,37 +442,40 @@ class MobileUserRepo {
       return ctl.stream;
     }
     return db
-        .collection('ride_sessions')
+        .collection(kColRideSessions)
         .where('uid', isEqualTo: uid)
-        .where('status', whereIn: ['pending', 'active', 'paused'])
+        .where(
+          'status',
+          whereIn: [kStatusPending, kStatusActive, kStatusPaused],
+        )
         .limit(1)
         .snapshots()
         .map((snap) {
-      if (snap.docs.isEmpty) return null;
-      return _sessionFromDoc(snap.docs.first);
-    });
+          if (snap.docs.isEmpty) return null;
+          return _sessionFromDoc(snap.docs.first);
+        });
   }
 
   Stream<RentalVehicle?> watchVehicle(String vehicleId) {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) {
-      final ctl = _demoVehicles.putIfAbsent(
+      final StreamController<RentalVehicle?> ctl = _demoVehicles.putIfAbsent(
         vehicleId,
         () => StreamController<RentalVehicle?>.broadcast(),
       );
       Future.microtask(() => ctl.add(_vehicles[vehicleId]));
       return ctl.stream;
     }
-    return db.collection('vehicles').doc(vehicleId).snapshots().map((doc) {
+    return db.collection(kColVehicles).doc(vehicleId).snapshots().map((doc) {
       if (!doc.exists) return null;
       return _vehicleFromDoc(doc);
     });
   }
 
   Stream<List<UserNotice>> watchUserNotifications(String uid) {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) {
-      final ctl = _demoNotices.putIfAbsent(
+      final StreamController<List<UserNotice>> ctl = _demoNotices.putIfAbsent(
         uid,
         () => StreamController<List<UserNotice>>.broadcast(),
       );
@@ -388,7 +483,7 @@ class MobileUserRepo {
       return ctl.stream;
     }
     return db
-        .collection('notifications')
+        .collection(kColNotifications)
         .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .limit(50)
@@ -400,13 +495,15 @@ class MobileUserRepo {
     required String vehicleId,
     int keepDays = 30,
   }) {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) {
       return Stream.value(_seedRoutes(vehicleId));
     }
-    final keepFrom = DateTime.now().subtract(Duration(days: keepDays - 1));
+    final DateTime keepFrom = DateTime.now().subtract(
+      Duration(days: keepDays - 1),
+    );
     return db
-        .collection('vehicles')
+        .collection(kColVehicles)
         .doc(vehicleId)
         .collection('history_routes')
         .where('startAt', isGreaterThanOrEqualTo: Timestamp.fromDate(keepFrom))
@@ -415,17 +512,18 @@ class MobileUserRepo {
         .map((snap) => snap.docs.map(_routeFromDoc).toList());
   }
 
+  /* --- public methods (events) --------------------------------- */
   Future<void> addLoginEvent(String employeeCode) async {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) return;
 
-    await db.collection('login_events').add({
+    await db.collection(kColLoginEvents).add({
       'employeeCode': employeeCode,
       'source': 'mobile',
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    await db.collection('notifications').add({
+    await db.collection(kColNotifications).add({
       'target': 'admin',
       'type': 'login_event',
       'title': 'Đăng nhập mới',
@@ -443,26 +541,31 @@ class MobileUserRepo {
     required String uid,
     required int amount,
   }) async {
-    final db = _db;
-    final transferContent = 'NAPTIEN_$uid';
+    final FirebaseFirestore? db = _db;
+    final String transferContent = 'NAPTIEN_$uid';
     if (db == null) {
-      final account = _demoAccounts.values.firstWhere((e) => e.uid == uid);
-      final updated = account.copyWith(balance: account.balance + amount);
+      final _DemoAccount account = _demoAccounts.values.firstWhere(
+        (e) => e.uid == uid,
+      );
+      final _DemoAccount updated = account.copyWith(
+        balance: account.balance + amount,
+      );
       _replaceDemoAccount(updated);
       _pushDemoProfile(_demoProfileFromAccount(updated));
       return;
     }
 
-    await db.collection('wallet_topups').add({
+    await db.collection(kColWalletTopups).add({
       'uid': uid,
       'amount': amount,
-      'status': 'pending',
+      'status': kStatusPending,
       'paymentMethod': 'bank_qr',
       'transferContent': transferContent,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
+  /* --- public methods (ride lifecycle) ------------------------- */
   Future<void> startRide({
     required MobileUserProfile user,
     required RentalVehicle vehicle,
@@ -475,11 +578,11 @@ class MobileUserRepo {
       throw Exception('Xe đang được người khác sử dụng.');
     }
 
-    final now = DateTime.now();
-    final sessionId = 'RS_${now.millisecondsSinceEpoch}';
+    final DateTime now = DateTime.now();
+    final String sessionId = 'RS_${now.millisecondsSinceEpoch}';
 
     if (_db == null) {
-      final session = UserRideSession(
+      final UserRideSession session = UserRideSession(
         sessionId: sessionId,
         uid: user.uid,
         employeeCode: user.employeeCode,
@@ -488,7 +591,7 @@ class MobileUserRepo {
         vehicleName: vehicle.name,
         stationStartId: 'ST_HCM_001',
         stationEndId: null,
-        status: 'active',
+        status: kStatusActive,
         startedAt: now,
         pausedAt: null,
         endedAt: null,
@@ -498,14 +601,14 @@ class MobileUserRepo {
         mainAmountUsed: pricing.pricePerHour,
         depositUsed: 0,
         remainingBalanceSnapshot: user.balance - pricing.totalRequired,
-        remainingSeconds: 3600,
+        remainingSeconds: kInitialRemainingSeconds,
         canUnlock: true,
         routeIds: const [],
       );
       _activeSessions[user.uid] = session;
       _demoSessions[user.uid]?.add(session);
 
-      final updatedVehicle = RentalVehicle(
+      final RentalVehicle updatedVehicle = RentalVehicle(
         id: vehicle.id,
         name: vehicle.name,
         batteryPercent: vehicle.batteryPercent,
@@ -525,22 +628,34 @@ class MobileUserRepo {
       _vehicles[vehicle.id] = updatedVehicle;
       _demoVehicles[vehicle.id]?.add(updatedVehicle);
 
-      final updatedAccount = _demoAccounts.values.firstWhere((e) => e.uid == user.uid).copyWith(
-            balance: user.balance - pricing.totalRequired,
-          );
+      final _DemoAccount updatedAccount = _demoAccounts.values
+          .firstWhere((e) => e.uid == user.uid)
+          .copyWith(balance: user.balance - pricing.totalRequired);
       _replaceDemoAccount(updatedAccount);
-      _pushDemoProfile(_demoProfileFromAccount(updatedAccount).copyWith(currentSessionId: sessionId));
+      _pushDemoProfile(
+        _demoProfileFromAccount(
+          updatedAccount,
+        ).copyWith(currentSessionId: sessionId),
+      );
       return;
     }
 
-    final batch = _db!.batch();
-    final sessionRef = _db!.collection('ride_sessions').doc(sessionId);
-    final vehicleRef = _db!.collection('vehicles').doc(vehicle.id);
-    final userRef = _db!.collection('users').doc(user.uid);
-    final commandRef = _db!.collection('vehicle_commands').doc();
-    final noticeRef = _db!.collection('notifications').doc();
-    final tx1 = _db!.collection('wallet_transactions').doc();
-    final tx2 = _db!.collection('wallet_transactions').doc();
+    final WriteBatch batch = _db!.batch();
+    final DocumentReference sessionRef = _db!
+        .collection(kColRideSessions)
+        .doc(sessionId);
+    final DocumentReference vehicleRef = _db!
+        .collection(kColVehicles)
+        .doc(vehicle.id);
+    final DocumentReference userRef = _db!.collection(kColUsers).doc(user.uid);
+    final DocumentReference commandRef = _db!
+        .collection(kColVehicleCommands)
+        .doc();
+    final DocumentReference noticeRef = _db!
+        .collection(kColNotifications)
+        .doc();
+    final DocumentReference tx1 = _db!.collection(kColWalletTxs).doc();
+    final DocumentReference tx2 = _db!.collection(kColWalletTxs).doc();
 
     batch.set(sessionRef, {
       'sessionId': sessionId,
@@ -551,7 +666,7 @@ class MobileUserRepo {
       'vehicleName': vehicle.name,
       'stationStartId': null,
       'stationEndId': null,
-      'status': 'active',
+      'status': kStatusActive,
       'startedAt': Timestamp.fromDate(now),
       'pausedAt': null,
       'endedAt': null,
@@ -561,7 +676,7 @@ class MobileUserRepo {
       'mainAmountUsed': pricing.pricePerHour,
       'depositUsed': 0,
       'remainingBalanceSnapshot': user.balance - pricing.totalRequired,
-      'remainingSeconds': 3600,
+      'remainingSeconds': kInitialRemainingSeconds,
       'canUnlock': true,
       'routeIds': [],
       'createdAt': FieldValue.serverTimestamp(),
@@ -590,7 +705,7 @@ class MobileUserRepo {
       'sessionId': sessionId,
       'uid': user.uid,
       'type': 'unlock',
-      'status': 'pending',
+      'status': kStatusPending,
       'source': 'mobile',
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -633,21 +748,21 @@ class MobileUserRepo {
   }
 
   Future<void> pauseRide(UserRideSession session) async {
-    await _updateSessionStatus(session, 'paused');
+    await _updateSessionStatus(session, kStatusPaused);
   }
 
   Future<void> resumeRide(UserRideSession session) async {
-    await _updateSessionStatus(session, 'active');
+    await _updateSessionStatus(session, kStatusActive);
   }
 
   Future<void> endRide(UserRideSession session) async {
-    final now = DateTime.now();
+    final DateTime now = DateTime.now();
     if (_db == null) {
       _activeSessions.remove(session.uid);
       _demoSessions[session.uid]?.add(null);
-      final vehicle = _vehicles[session.vehicleId];
+      final RentalVehicle? vehicle = _vehicles[session.vehicleId];
       if (vehicle != null) {
-        final updated = RentalVehicle(
+        final RentalVehicle updated = RentalVehicle(
           id: vehicle.id,
           name: vehicle.name,
           batteryPercent: vehicle.batteryPercent,
@@ -667,22 +782,34 @@ class MobileUserRepo {
         _vehicles[vehicle.id] = updated;
         _demoVehicles[vehicle.id]?.add(updated);
       }
-      final account = _demoAccounts.values.firstWhere((e) => e.uid == session.uid);
+      final _DemoAccount account = _demoAccounts.values.firstWhere(
+        (e) => e.uid == session.uid,
+      );
       _pushDemoProfile(
         _demoProfileFromAccount(account).copyWith(currentSessionId: null),
       );
       return;
     }
 
-    final batch = _db!.batch();
-    final sessionRef = _db!.collection('ride_sessions').doc(session.sessionId);
-    final vehicleRef = _db!.collection('vehicles').doc(session.vehicleId);
-    final userRef = _db!.collection('users').doc(session.uid);
-    final commandRef = _db!.collection('vehicle_commands').doc();
-    final noticeRef = _db!.collection('notifications').doc();
+    final WriteBatch batch = _db!.batch();
+    final DocumentReference sessionRef = _db!
+        .collection(kColRideSessions)
+        .doc(session.sessionId);
+    final DocumentReference vehicleRef = _db!
+        .collection(kColVehicles)
+        .doc(session.vehicleId);
+    final DocumentReference userRef = _db!
+        .collection(kColUsers)
+        .doc(session.uid);
+    final DocumentReference commandRef = _db!
+        .collection(kColVehicleCommands)
+        .doc();
+    final DocumentReference noticeRef = _db!
+        .collection(kColNotifications)
+        .doc();
 
     batch.set(sessionRef, {
-      'status': 'ended',
+      'status': kStatusEnded,
       'endedAt': Timestamp.fromDate(now),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -708,7 +835,7 @@ class MobileUserRepo {
       'sessionId': session.sessionId,
       'uid': session.uid,
       'type': 'end_ride',
-      'status': 'pending',
+      'status': kStatusPending,
       'source': 'mobile',
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -729,35 +856,11 @@ class MobileUserRepo {
     await batch.commit();
   }
 
-  Future<void> changePassword({
-    required String uid,
-    required String currentPassword,
-    required String newPassword,
-  }) async {
-    if (_db == null) {
-      final account = _demoAccounts.values.firstWhere((e) => e.uid == uid);
-      if (account.password != currentPassword.trim()) {
-        throw Exception('Mật khẩu hiện tại không đúng.');
-      }
-      _replaceDemoAccount(account.copyWith(password: newPassword.trim()));
-      return;
-    }
-    final user = _auth!.currentUser;
-    if (user == null || user.email == null) {
-      throw Exception('Không thể đổi mật khẩu ở tài khoản hiện tại.');
-    }
-    final cred = EmailAuthProvider.credential(
-      email: user.email!,
-      password: currentPassword.trim(),
-    );
-    await user.reauthenticateWithCredential(cred);
-    await user.updatePassword(newPassword.trim());
-  }
-
+  /* --- private methods (persistence) --------------------------- */
   Future<void> _saveUserProfile(MobileUserProfile profile) async {
-    final db = _db;
+    final FirebaseFirestore? db = _db;
     if (db == null) return;
-    await db.collection('users').doc(profile.uid).set({
+    await db.collection(kColUsers).doc(profile.uid).set({
       'uid': profile.uid,
       'employeeCode': profile.employeeCode,
       'fullName': profile.fullName,
@@ -774,10 +877,13 @@ class MobileUserRepo {
     }, SetOptions(merge: true));
   }
 
-  Future<void> _updateSessionStatus(UserRideSession session, String status) async {
-    final now = DateTime.now();
+  Future<void> _updateSessionStatus(
+    UserRideSession session,
+    String status,
+  ) async {
+    final DateTime now = DateTime.now();
     if (_db == null) {
-      final next = UserRideSession(
+      final UserRideSession next = UserRideSession(
         sessionId: session.sessionId,
         uid: session.uid,
         employeeCode: session.employeeCode,
@@ -788,7 +894,7 @@ class MobileUserRepo {
         stationEndId: session.stationEndId,
         status: status,
         startedAt: session.startedAt,
-        pausedAt: status == 'paused' ? now : null,
+        pausedAt: status == kStatusPaused ? now : null,
         endedAt: session.endedAt,
         lastHeartbeatAt: now,
         pricePerHour: session.pricePerHour,
@@ -802,15 +908,15 @@ class MobileUserRepo {
       );
       _activeSessions[session.uid] = next;
       _demoSessions[session.uid]?.add(next);
-      final vehicle = _vehicles[session.vehicleId];
+      final RentalVehicle? vehicle = _vehicles[session.vehicleId];
       if (vehicle != null) {
         _vehicles[vehicle.id] = RentalVehicle(
           id: vehicle.id,
           name: vehicle.name,
           batteryPercent: vehicle.batteryPercent,
           isLocked: vehicle.isLocked,
-          isRunning: status == 'active',
-          isPaused: status == 'paused',
+          isRunning: status == kStatusActive,
+          isPaused: status == kStatusPaused,
           isInUse: true,
           currentUserId: session.uid,
           currentSessionId: session.sessionId,
@@ -826,44 +932,44 @@ class MobileUserRepo {
       return;
     }
 
-    final batch = _db!.batch();
+    final WriteBatch batch = _db!.batch();
     batch.set(
-      _db!.collection('ride_sessions').doc(session.sessionId),
+      _db!.collection(kColRideSessions).doc(session.sessionId),
       {
         'status': status,
-        'pausedAt': status == 'paused' ? Timestamp.fromDate(now) : null,
+        'pausedAt': status == kStatusPaused ? Timestamp.fromDate(now) : null,
         'updatedAt': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),
     );
     batch.set(
-      _db!.collection('vehicles').doc(session.vehicleId),
+      _db!.collection(kColVehicles).doc(session.vehicleId),
       {
-        'isPaused': status == 'paused',
-        'isRunning': status == 'active',
+        'isPaused': status == kStatusPaused,
+        'isRunning': status == kStatusActive,
         'updatedAt': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),
     );
-    batch.set(_db!.collection('vehicle_commands').doc(), {
+    batch.set(_db!.collection(kColVehicleCommands).doc(), {
       'vehicleId': session.vehicleId,
       'sessionId': session.sessionId,
       'uid': session.uid,
-      'type': status == 'paused' ? 'pause' : 'resume',
-      'status': 'pending',
+      'type': status == kStatusPaused ? 'pause' : 'resume',
+      'status': kStatusPending,
       'source': 'mobile',
       'createdAt': FieldValue.serverTimestamp(),
     });
-    batch.set(_db!.collection('notifications').doc(), {
+    batch.set(_db!.collection(kColNotifications).doc(), {
       'uid': session.uid,
       'target': 'user',
       'vehicleId': session.vehicleId,
       'sessionId': session.sessionId,
-      'type': status == 'paused' ? 'ride_paused' : 'ride_status',
-      'title': status == 'paused'
+      'type': status == kStatusPaused ? 'ride_paused' : 'ride_status',
+      'title': status == kStatusPaused
           ? '${session.vehicleName} đang tạm ngưng'
           : '${session.vehicleName} tiếp tục sử dụng',
-      'body': status == 'paused'
+      'body': status == kStatusPaused
           ? 'Bạn có thể tiếp tục bất cứ lúc nào.'
           : 'Chuyến đi đang tiếp tục.',
       'routeId': null,
@@ -873,8 +979,11 @@ class MobileUserRepo {
     await batch.commit();
   }
 
-  MobileUserProfile _profileFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final m = doc.data() ?? {};
+  /* --- private methods (doc -> model) -------------------------- */
+  MobileUserProfile _profileFromDoc(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final Map<String, dynamic> m = doc.data() ?? {};
     return MobileUserProfile(
       uid: (m['uid'] ?? doc.id).toString(),
       employeeCode: (m['employeeCode'] ?? 'NV001').toString(),
@@ -892,10 +1001,11 @@ class MobileUserRepo {
   }
 
   BikeStation _stationFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final m = doc.data() ?? {};
-    final loc = (m['location'] as Map?)?.cast<String, dynamic>() ?? {};
-    final lat = (loc['lat'] as num?)?.toDouble() ?? 0;
-    final lon = (loc['lon'] as num?)?.toDouble() ?? 0;
+    final Map<String, dynamic> m = doc.data() ?? {};
+    final Map<String, dynamic> loc =
+        (m['location'] as Map?)?.cast<String, dynamic>() ?? {};
+    final double lat = (loc['lat'] as num?)?.toDouble() ?? 0;
+    final double lon = (loc['lon'] as num?)?.toDouble() ?? 0;
     return BikeStation(
       id: (m['id'] ?? doc.id).toString(),
       name: (m['name'] ?? '').toString(),
@@ -910,7 +1020,7 @@ class MobileUserRepo {
   }
 
   UserRideSession _sessionFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final m = doc.data() ?? {};
+    final Map<String, dynamic> m = doc.data() ?? {};
     return UserRideSession(
       sessionId: (m['sessionId'] ?? doc.id).toString(),
       uid: (m['uid'] ?? '').toString(),
@@ -920,25 +1030,28 @@ class MobileUserRepo {
       vehicleName: (m['vehicleName'] ?? '').toString(),
       stationStartId: m['stationStartId']?.toString(),
       stationEndId: m['stationEndId']?.toString(),
-      status: (m['status'] ?? 'pending').toString(),
+      status: (m['status'] ?? kStatusPending).toString(),
       startedAt: _asDate(m['startedAt']),
       pausedAt: m['pausedAt'] == null ? null : _asDate(m['pausedAt']),
       endedAt: m['endedAt'] == null ? null : _asDate(m['endedAt']),
       lastHeartbeatAt: _asDate(m['lastHeartbeatAt']),
-      pricePerHour: _asInt(m['pricePerHour'], 10000),
-      depositAmount: _asInt(m['depositAmount'], 10000),
+      pricePerHour: _asInt(m['pricePerHour'], kDefaultPricePerHour),
+      depositAmount: _asInt(m['depositAmount'], kDefaultDepositAmount),
       mainAmountUsed: _asInt(m['mainAmountUsed'], 0),
       depositUsed: _asInt(m['depositUsed'], 0),
       remainingBalanceSnapshot: _asInt(m['remainingBalanceSnapshot'], 0),
       remainingSeconds: _asInt(m['remainingSeconds'], 0),
       canUnlock: _asBool(m['canUnlock'], true),
-      routeIds: ((m['routeIds'] as List?) ?? const []).map((e) => e.toString()).toList(),
+      routeIds: ((m['routeIds'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 
   RentalVehicle _vehicleFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final m = doc.data() ?? {};
-    final loc = (m['lastLocation'] as Map?)?.cast<String, dynamic>() ?? {};
+    final Map<String, dynamic> m = doc.data() ?? {};
+    final Map<String, dynamic> loc =
+        (m['lastLocation'] as Map?)?.cast<String, dynamic>() ?? {};
     return RentalVehicle(
       id: (m['id'] ?? doc.id).toString(),
       name: (m['name'] ?? '').toString(),
@@ -953,16 +1066,13 @@ class MobileUserRepo {
       temp: _asDouble(m['temp'], 0),
       hum: _asDouble(m['hum'], 0),
       dust: _asDouble(m['dust'], 0),
-      lastLocation: LatLng(
-        _asDouble(loc['lat'], 0),
-        _asDouble(loc['lon'], 0),
-      ),
+      lastLocation: LatLng(_asDouble(loc['lat'], 0), _asDouble(loc['lon'], 0)),
       updatedAt: _asDate(m['updatedAt']),
     );
   }
 
   UserNotice _noticeFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final m = doc.data() ?? {};
+    final Map<String, dynamic> m = doc.data() ?? {};
     return UserNotice(
       id: doc.id,
       title: (m['title'] ?? '').toString(),
@@ -977,14 +1087,11 @@ class MobileUserRepo {
   }
 
   MobileHistoryRoute _routeFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final m = doc.data() ?? {};
-    final rawPoints = (m['points'] as List?) ?? const [];
-    final points = rawPoints.map((e) {
-      final p = Map<String, dynamic>.from(e as Map);
-      return LatLng(
-        _asDouble(p['lat'], 0),
-        _asDouble(p['lon'], 0),
-      );
+    final Map<String, dynamic> m = doc.data() ?? {};
+    final List rawPoints = (m['points'] as List?) ?? const [];
+    final List<LatLng> points = rawPoints.map((e) {
+      final Map<String, dynamic> p = Map<String, dynamic>.from(e as Map);
+      return LatLng(_asDouble(p['lat'], 0), _asDouble(p['lon'], 0));
     }).toList();
     return MobileHistoryRoute(
       id: doc.id,
@@ -995,9 +1102,10 @@ class MobileUserRepo {
     );
   }
 
+  /* --- private methods (seed / demo helpers) ------------------- */
   List<UserNotice> _seedNotices(String uid) {
-    final session = _activeSessions[uid];
-    final items = <UserNotice>[];
+    final UserRideSession? session = _activeSessions[uid];
+    final List<UserNotice> items = <UserNotice>[];
     if (session != null) {
       items.add(
         UserNotice(
@@ -1068,13 +1176,14 @@ class MobileUserRepo {
   }
 
   void _pushDemoProfile(MobileUserProfile profile) {
-    final ctl = _demoProfiles.putIfAbsent(
+    final StreamController<MobileUserProfile> ctl = _demoProfiles.putIfAbsent(
       profile.uid,
       () => StreamController<MobileUserProfile>.broadcast(),
     );
     if (!ctl.isClosed) ctl.add(profile);
   }
 
+  /* --- private methods (type conversion helpers) --------------- */
   bool _asBool(dynamic value, bool fallback) {
     if (value is bool) return value;
     if (value == null) return fallback;
@@ -1100,6 +1209,7 @@ class MobileUserRepo {
   }
 }
 
+/* Private classes ---------------------------------------------------- */
 class _DemoAccount {
   final String uid;
   final String? email;
@@ -1119,10 +1229,7 @@ class _DemoAccount {
     required this.balance,
   });
 
-  _DemoAccount copyWith({
-    String? password,
-    int? balance,
-  }) {
+  _DemoAccount copyWith({String? password, int? balance}) {
     return _DemoAccount(
       uid: uid,
       email: email,
@@ -1134,3 +1241,8 @@ class _DemoAccount {
     );
   }
 }
+
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

@@ -1,3 +1,9 @@
+/*
+ * @file       mobile_notice_provider.dart
+ * @brief      Streams per-user notifications and history routes.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -6,16 +12,27 @@ import '../models/mobile_history_route.dart';
 import '../models/user_notice.dart';
 import '../services/mobile_user_repo.dart';
 
+/* Constants ---------------------------------------------------------- */
+const String kDefaultVehicleId = 'V1';
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class MobileNoticeProvider extends ChangeNotifier {
   MobileNoticeProvider(this._repo);
 
+  /* --- private fields ------------------------------------------ */
   final MobileUserRepo _repo;
   StreamSubscription<List<UserNotice>>? _noticeSub;
   StreamSubscription<List<MobileHistoryRoute>>? _routeSub;
+
+  /* --- public fields ------------------------------------------- */
   List<UserNotice> notices = const [];
   List<MobileHistoryRoute> routes = const [];
 
-  void bindUser(String? uid, {String vehicleId = 'V1'}) {
+  /* --- public methods ------------------------------------------ */
+  void bindUser(String? uid, {String vehicleId = kDefaultVehicleId}) {
     _noticeSub?.cancel();
     _routeSub?.cancel();
     notices = const [];
@@ -40,3 +57,9 @@ class MobileNoticeProvider extends ChangeNotifier {
     super.dispose();
   }
 }
+
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

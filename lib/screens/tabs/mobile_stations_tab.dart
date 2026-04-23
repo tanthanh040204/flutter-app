@@ -1,3 +1,9 @@
+/*
+ * @file       mobile_stations_tab.dart
+ * @brief      Stations tab: renders a map of bike stations and details sheet.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,16 +13,31 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/station.dart';
 import '../../providers/mobile_stations_provider.dart';
 
+/* Constants ---------------------------------------------------------- */
+const Color kMarkerColor = Color(0xFF1557FF);
+const Color kAccentColor = Color(0xFF1557FF);
+const String kOsmTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const String kUserAgentPkg = 'com.example.UTE-go_user_app';
+const int kBatteryHighThresh = 60;
+const int kBatteryMediumThresh = 25;
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class MobileStationsTab extends StatelessWidget {
   const MobileStationsTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final stationsProvider = context.watch<MobileStationsProvider>();
-    final stations = stationsProvider.stations;
-    final userPoint = stationsProvider.currentUserLocation;
+    final MobileStationsProvider stationsProvider = context
+        .watch<MobileStationsProvider>();
+    final List<BikeStation> stations = stationsProvider.stations;
+    final LatLng userPoint = stationsProvider.currentUserLocation;
 
-    final center = stations.isNotEmpty ? stations.first.point : userPoint;
+    final LatLng center = stations.isNotEmpty
+        ? stations.first.point
+        : userPoint;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trạm xe')),
@@ -24,8 +45,8 @@ class MobileStationsTab extends StatelessWidget {
         options: MapOptions(initialCenter: center, initialZoom: 15.2),
         children: [
           TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.UTE-go_user_app',
+            urlTemplate: kOsmTileUrl,
+            userAgentPackageName: kUserAgentPkg,
           ),
           MarkerLayer(
             markers: [
@@ -86,7 +107,7 @@ class MobileStationsTab extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1557FF),
+                  color: kAccentColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -117,7 +138,7 @@ class MobileStationsTab extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () async {
-                    final uri = Uri.parse(station.googleMapUrl);
+                    final Uri uri = Uri.parse(station.googleMapUrl);
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   },
                   icon: const Icon(Icons.map_outlined),
@@ -143,7 +164,7 @@ class MobileStationsTab extends StatelessWidget {
                     children: [
                       const Icon(
                         Icons.pedal_bike,
-                        color: Color(0xFF1557FF),
+                        color: kAccentColor,
                         size: 28,
                       ),
                       const SizedBox(width: 12),
@@ -181,12 +202,13 @@ class MobileStationsTab extends StatelessWidget {
   }
 
   Color _batteryColor(int percent) {
-    if (percent >= 60) return Colors.green;
-    if (percent >= 25) return Colors.orange;
+    if (percent >= kBatteryHighThresh) return Colors.green;
+    if (percent >= kBatteryMediumThresh) return Colors.orange;
     return Colors.red;
   }
 }
 
+/* Private classes ---------------------------------------------------- */
 class _StationMarker extends StatelessWidget {
   final int count;
 
@@ -202,7 +224,7 @@ class _StationMarker extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: const BoxDecoration(
-            color: Color(0xFF1557FF),
+            color: kMarkerColor,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
@@ -260,7 +282,7 @@ class _StationStat extends StatelessWidget {
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF1557FF),
+              color: kAccentColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -270,3 +292,8 @@ class _StationStat extends StatelessWidget {
     );
   }
 }
+
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

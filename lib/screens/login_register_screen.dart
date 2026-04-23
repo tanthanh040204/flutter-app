@@ -1,8 +1,22 @@
+/*
+ * @file       login_register_screen.dart
+ * @brief      Combined login / register screen with email or phone modes.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/mobile_auth_provider.dart';
 
+/* Constants ---------------------------------------------------------- */
+const String kDefaultDemoIdentifier = 'demo@tngo.vn';
+const String kDefaultDemoPassword = '123456';
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({super.key});
 
@@ -10,13 +24,18 @@ class LoginRegisterScreen extends StatefulWidget {
   State<LoginRegisterScreen> createState() => _LoginRegisterScreenState();
 }
 
+/* Private classes ---------------------------------------------------- */
 class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool loginMode = true;
   bool usePhone = false;
-  final fullNameCtl = TextEditingController();
-  final employeeCtl = TextEditingController();
-  final identifierCtl = TextEditingController(text: 'demo@tngo.vn');
-  final passwordCtl = TextEditingController(text: '123456');
+  final TextEditingController fullNameCtl = TextEditingController();
+  final TextEditingController employeeCtl = TextEditingController();
+  final TextEditingController identifierCtl = TextEditingController(
+    text: kDefaultDemoIdentifier,
+  );
+  final TextEditingController passwordCtl = TextEditingController(
+    text: kDefaultDemoPassword,
+  );
 
   @override
   void dispose() {
@@ -29,7 +48,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<MobileAuthProvider>();
+    final MobileAuthProvider auth = context.watch<MobileAuthProvider>();
     return Scaffold(
       appBar: AppBar(title: Text(loginMode ? 'Đăng nhập' : 'Đăng ký')),
       body: SafeArea(
@@ -98,7 +117,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               onPressed: auth.loading
                   ? null
                   : () async {
-                      final ok = loginMode
+                      final bool ok = loginMode
                           ? await auth.login(
                               identifier: identifierCtl.text,
                               password: passwordCtl.text,
@@ -143,3 +162,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     );
   }
 }
+
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */
