@@ -12,6 +12,12 @@ class MobileUserProfile {
   final DateTime createdAt;
   final DateTime lastLoginAt;
 
+  /// Dùng cho logic nợ quá giờ và khóa tài khoản sau 2 ngày.
+  final DateTime? debtStartedAt;
+  final DateTime? debtDueAt;
+  final DateTime? blockedAt;
+  final String? blockReason;
+
   const MobileUserProfile({
     required this.uid,
     required this.employeeCode,
@@ -25,6 +31,10 @@ class MobileUserProfile {
     required this.currentSessionId,
     required this.createdAt,
     required this.lastLoginAt,
+    this.debtStartedAt,
+    this.debtDueAt,
+    this.blockedAt,
+    this.blockReason,
   });
 
   MobileUserProfile copyWith({
@@ -39,6 +49,10 @@ class MobileUserProfile {
     String? currentSessionId,
     DateTime? createdAt,
     DateTime? lastLoginAt,
+    DateTime? debtStartedAt,
+    DateTime? debtDueAt,
+    DateTime? blockedAt,
+    String? blockReason,
   }) {
     return MobileUserProfile(
       uid: uid,
@@ -53,6 +67,10 @@ class MobileUserProfile {
       currentSessionId: currentSessionId ?? this.currentSessionId,
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      debtStartedAt: debtStartedAt ?? this.debtStartedAt,
+      debtDueAt: debtDueAt ?? this.debtDueAt,
+      blockedAt: blockedAt ?? this.blockedAt,
+      blockReason: blockReason ?? this.blockReason,
     );
   }
 }

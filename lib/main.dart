@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'config/app_theme.dart';
 import 'firebase_options.dart';
+import 'providers/app_language_provider.dart';
 import 'providers/mobile_auth_provider.dart';
 import 'providers/mobile_notice_provider.dart';
 import 'providers/mobile_ride_provider.dart';
@@ -36,6 +37,9 @@ class TnGoUserApp extends StatelessWidget {
           create: (_) => MobileUserRepo.instance,
         ),
         ChangeNotifierProvider(
+          create: (_) => AppLanguageProvider(),
+        ),
+        ChangeNotifierProvider(
           create: (context) => MobileAuthProvider(
             context.read<MobileUserRepo>(),
           ),
@@ -58,11 +62,16 @@ class TnGoUserApp extends StatelessWidget {
   create: (_) => MobileStationsProvider(),
 ),
       ],
-      child: MaterialApp(
-        title: 'UTE-go',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const MobileBootstrap(),
+      child: Consumer<AppLanguageProvider>(
+        builder: (context, language, _) {
+          return MaterialApp(
+            title: 'UTE-go',
+            debugShowCheckedModeBanner: false,
+            locale: language.locale,
+            theme: AppTheme.lightTheme,
+            home: const MobileBootstrap(),
+          );
+        },
       ),
     );
   }

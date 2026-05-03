@@ -24,6 +24,7 @@ class MobileRideProvider extends ChangeNotifier {
   String? _uid;
   UserRideSession? session;
   RentalVehicle? vehicle;
+
   PricingConfig pricing = const PricingConfig(
     pricePerHour: 10000,
     depositAmount: 10000,
@@ -33,6 +34,34 @@ class MobileRideProvider extends ChangeNotifier {
 
   int _liveRemainingSeconds = 0;
   int get liveRemainingSeconds => _liveRemainingSeconds;
+
+  // Người dùng tự nhập số giờ thuê
+  int _selectedRentalHours = 1;
+  int get selectedRentalHours => _selectedRentalHours;
+
+  void setSelectedRentalHours(int hours) {
+    if (hours < 1) return;
+    if (_selectedRentalHours == hours) return;
+    _selectedRentalHours = hours;
+    notifyListeners();
+  }
+
+  int get selectedUsageFee => pricing.pricePerHour * _selectedRentalHours;
+
+  int get selectedTotalRequired => selectedUsageFee + pricing.depositAmount;
+
+  bool get showExtendPrompt =>
+      session != null &&
+      !session!.isEnded &&
+      liveRemainingSeconds > 0 &&
+      liveRemainingSeconds <= 15 * 60 &&
+      (vehicle?.isLocked == false);
+
+  bool get showReturnPrompt =>
+      session != null &&
+      !session!.isEnded &&
+      liveRemainingSeconds == 0 &&
+      (vehicle?.isLocked == false);
 
   void bindUser(String? uid) {
     if (_uid == uid) return;
@@ -83,14 +112,16 @@ class MobileRideProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    if (current.isPaused || current.isEnded) {
-      _liveRemainingSeconds = current.remainingSeconds;
+
+    if (current.isPaused || current.isEnded || current.runningSince == null) {
+      _liveRemainingSeconds = current.remainingSeconds.clamp(0, 999999).toInt();
       notifyListeners();
       return;
     }
-    final elapsed = DateTime.now().difference(current.startedAt).inSeconds;
+
+    final elapsed = DateTime.now().difference(current.runningSince!).inSeconds;
     final remaining = (current.remainingSeconds - elapsed).clamp(0, 999999);
-    _liveRemainingSeconds = remaining;
+    _liveRemainingSeconds = remaining.toInt();
     notifyListeners();
   }
 

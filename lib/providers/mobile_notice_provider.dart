@@ -15,7 +15,7 @@ class MobileNoticeProvider extends ChangeNotifier {
   List<UserNotice> notices = const [];
   List<MobileHistoryRoute> routes = const [];
 
-  void bindUser(String? uid, {String vehicleId = 'V1'}) {
+  void bindUser(String? uid, {String vehicleId = 'haq-trk-003'}) {
     _noticeSub?.cancel();
     _routeSub?.cancel();
     notices = const [];

@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../models/station.dart';
 import '../../providers/mobile_stations_provider.dart';
 
@@ -12,6 +13,7 @@ class MobileStationsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tr;
     final stationsProvider = context.watch<MobileStationsProvider>();
     final stations = stationsProvider.stations;
     final userPoint = stationsProvider.currentUserLocation;
@@ -19,7 +21,7 @@ class MobileStationsTab extends StatelessWidget {
     final center = stations.isNotEmpty ? stations.first.point : userPoint;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trạm xe')),
+      appBar: AppBar(title: Text(t.stations)),
       body: FlutterMap(
         options: MapOptions(initialCenter: center, initialZoom: 15.2),
         children: [
@@ -33,11 +35,7 @@ class MobileStationsTab extends StatelessWidget {
                 point: userPoint,
                 width: 70,
                 height: 70,
-                child: const Icon(
-                  Icons.my_location,
-                  color: Colors.red,
-                  size: 38,
-                ),
+                child: const Icon(Icons.my_location, color: Colors.red, size: 38),
               ),
               ...stations.map(
                 (station) => Marker(
@@ -55,18 +53,14 @@ class MobileStationsTab extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () =>
-            context.read<MobileStationsProvider>().refreshUserLocation(),
+        onPressed: () => context.read<MobileStationsProvider>().refreshUserLocation(),
         icon: const Icon(Icons.refresh),
-        label: const Text('Cập nhật'),
+        label: Text(t.refresh),
       ),
     );
   }
 
-  Future<void> _showStationSheet(
-    BuildContext context,
-    BikeStation station,
-  ) async {
+  Future<void> _showStationSheet(BuildContext context, BikeStation station) async {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
@@ -76,106 +70,87 @@ class MobileStationsTab extends StatelessWidget {
         initialChildSize: 0.55,
         minChildSize: 0.35,
         maxChildSize: 0.85,
-        builder: (context, scrollController) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: ListView(
-            controller: scrollController,
-            children: [
-              Text(
-                station.name,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1557FF),
+        builder: (context, scrollController) {
+          final t = context.tr;
+
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: ListView(
+              controller: scrollController,
+              children: [
+                Text(
+                  station.name,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1557FF),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                station.address,
-                style: const TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StationStat(
-                      label: 'Xe còn',
-                      value: station.bikeCount.toString(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _StationStat(
-                      label: 'Chỗ trống',
-                      value: station.availableSlots.toString(),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () async {
-                    final uri = Uri.parse(station.googleMapUrl);
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  },
-                  icon: const Icon(Icons.map_outlined),
-                  label: const Text('Mở Google Maps'),
+                const SizedBox(height: 8),
+                Text(station.address, style: const TextStyle(fontSize: 16, color: Colors.black54)),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(child: _StationStat(label: t.bikesAvailable, value: station.bikeCount.toString())),
+                    const SizedBox(width: 12),
+                    Expanded(child: _StationStat(label: t.freeSlots, value: station.availableSlots.toString())),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Danh sách xe tại trạm',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 10),
-              ...station.vehicles.map(
-                (bike) => Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: Colors.grey.shade50,
-                    border: Border.all(color: Colors.grey.shade200),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      final uri = Uri.parse(station.googleMapUrl);
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    },
+                    icon: const Icon(Icons.map_outlined),
+                    label: Text(t.openGoogleMaps),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.pedal_bike,
-                        color: Color(0xFF1557FF),
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              bike.code,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
+                ),
+                const SizedBox(height: 18),
+                Text(t.bikesAtStation, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 10),
+                ...station.vehicles.map(
+                  (bike) => Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.grey.shade50,
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.pedal_bike, color: Color(0xFF1557FF), size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                bike.code,
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${bike.status} - ${bike.batteryPercent}% pin',
-                              style: TextStyle(
-                                color: _batteryColor(bike.batteryPercent),
-                                fontWeight: FontWeight.w600,
+                              const SizedBox(height: 4),
+                              Text(
+                                t.bikeBatteryText(bike.status, bike.batteryPercent),
+                                style: TextStyle(
+                                  color: _batteryColor(bike.batteryPercent),
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -205,11 +180,7 @@ class _StationMarker extends StatelessWidget {
             color: Color(0xFF1557FF),
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 6,
-                offset: Offset(0, 2),
-              ),
+              BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
             ],
           ),
           child: const Icon(Icons.pedal_bike, color: Colors.white, size: 24),
@@ -226,11 +197,7 @@ class _StationMarker extends StatelessWidget {
             ),
             child: Text(
               '$count',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 11,
-              ),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11),
             ),
           ),
         ),
@@ -249,19 +216,12 @@ class _StationStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1557FF),
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF1557FF)),
           ),
           const SizedBox(height: 4),
           Text(label),

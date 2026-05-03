@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../providers/mobile_auth_provider.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -14,29 +15,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _index = 0;
 
-  final _pages = const [
-    _OnboardData(
-      title: 'Xe đạp công cộng - Đi bất kỳ đâu',
-      desc:
-          'Bạn có thể lấy xe tại một trạm, thực hiện chuyến đi và trả xe tại một trạm bất kỳ.',
-      icon: Icons.car_rental_rounded,
-    ),
-    _OnboardData(
-      title: 'Quét QR để mở khóa',
-      desc:
-          'Chỉ cần quét QR trên xe và xác nhận sử dụng nếu số dư của bạn hợp lệ.',
-      icon: Icons.qr_code_scanner,
-    ),
-    _OnboardData(
-      title: 'Kết thúc chuyến đi',
-      desc:
-          'Đỗ xe tại trạm, khóa xe và xác nhận trả xe trên ứng dụng di động để kết thúc chuyến đi.',
-      icon: Icons.directions_car,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final t = context.tr;
+    final pages = [
+      _OnboardData(
+        title: t.onboardingTitle1,
+        desc: t.onboardingDesc1,
+        icon: Icons.car_rental_rounded,
+      ),
+      _OnboardData(
+        title: t.onboardingTitle2,
+        desc: t.onboardingDesc2,
+        icon: Icons.qr_code_scanner,
+      ),
+      _OnboardData(
+        title: t.onboardingTitle3,
+        desc: t.onboardingDesc3,
+        icon: Icons.directions_car,
+      ),
+    ];
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -46,10 +45,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Expanded(
                 child: PageView.builder(
                   controller: _controller,
-                  itemCount: _pages.length,
+                  itemCount: pages.length,
                   onPageChanged: (i) => setState(() => _index = i),
                   itemBuilder: (_, i) {
-                    final page = _pages[i];
+                    final page = pages[i];
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -83,7 +82,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_pages.length, (i) {
+                children: List.generate(pages.length, (i) {
                   final active = i == _index;
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -108,18 +107,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               duration: const Duration(milliseconds: 250),
                               curve: Curves.easeOut,
                             ),
-                      child: const Text('Trước đó'),
+                      child: Text(t.previous),
                     ),
                   ),
                   Expanded(
                     child: TextButton(
-                      onPressed: _index == _pages.length - 1
+                      onPressed: _index == pages.length - 1
                           ? null
                           : () => _controller.nextPage(
                               duration: const Duration(milliseconds: 250),
                               curve: Curves.easeOut,
                             ),
-                      child: const Text('Tiếp theo'),
+                      child: Text(t.next),
                     ),
                   ),
                 ],
@@ -130,11 +129,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: FilledButton(
                   onPressed: () =>
                       context.read<MobileAuthProvider>().finishOnboarding(),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Text(
-                      'Đăng nhập',
-                      style: TextStyle(
+                      t.login,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -148,11 +147,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: FilledButton.tonal(
                   onPressed: () =>
                       context.read<MobileAuthProvider>().finishOnboarding(),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Text(
-                      'Đăng ký',
-                      style: TextStyle(
+                      t.register,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),

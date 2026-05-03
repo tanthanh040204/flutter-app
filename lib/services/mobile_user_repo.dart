@@ -20,6 +20,13 @@ class MobileUserRepo {
   static final MobileUserRepo instance = MobileUserRepo._();
 
   final _rnd = Random();
+
+  // Prototype theo yêu cầu mới: UI không nhập mật khẩu.
+  // Repo tự dùng mật khẩu mặc định để vẫn tạo/đăng nhập Firebase Auth.
+  // Khi làm thật nên thay bằng email link hoặc OTP.
+  static const String _defaultAuthPassword = 'ute_go_123456';
+  static const String _legacyDemoPassword = '123456';
+
   final Map<String, _DemoAccount> _demoAccounts = {
     'demo@tngo.vn': _DemoAccount(
       uid: 'demo_user_001',
@@ -49,9 +56,9 @@ class MobileUserRepo {
 
   final Map<String, UserRideSession> _activeSessions = {};
   final Map<String, RentalVehicle> _vehicles = {
-    'V1': RentalVehicle(
-      id: 'V1',
-      name: 'Xe 1',
+    'haq-trk-003': RentalVehicle(
+      id: 'haq-trk-003',
+      name: 'Xe 003',
       batteryPercent: 87,
       isLocked: true,
       isRunning: false,
@@ -79,7 +86,8 @@ class MobileUserRepo {
     }
   }
 
-  FirebaseFirestore? get _db => _useLocalDemo ? null : FirebaseFirestore.instance;
+  FirebaseFirestore? get _db =>
+      _useLocalDemo ? null : FirebaseFirestore.instance;
   FirebaseAuth? get _auth => _useLocalDemo ? null : FirebaseAuth.instance;
 
   final PricingConfig _demoPricing = const PricingConfig(
@@ -90,104 +98,188 @@ class MobileUserRepo {
   );
 
   List<BikeStation> get _seedStations => const [
-        BikeStation(
-          id: 'ST_HCM_001',
-          name: 'Công viên 30/4',
-          city: 'TP.HCM',
-          address: 'Lê Duẩn, Bến Nghé, Quận 1, TP.HCM',
-          point: LatLng(10.7791, 106.6998),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=10.7791,106.6998',
-          bikeCount: 10,
-          availableSlots: 6,
-          isActive: true,
-        ),
-        BikeStation(
-          id: 'ST_HCM_002',
-          name: 'Công viên Tao Đàn',
-          city: 'TP.HCM',
-          address: 'Trương Định, Bến Thành, Quận 1, TP.HCM',
-          point: LatLng(10.7769, 106.6918),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=10.7769,106.6918',
-          bikeCount: 13,
-          availableSlots: 2,
-          isActive: true,
-        ),
-        BikeStation(
-          id: 'ST_HCM_003',
-          name: 'Trống Đồng',
-          city: 'TP.HCM',
-          address: '12B CMT8, Bến Thành, Quận 1, TP.HCM',
-          point: LatLng(10.7760, 106.6942),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=10.7760,106.6942',
-          bikeCount: 13,
-          availableSlots: 6,
-          isActive: true,
-        ),
-        BikeStation(
-          id: 'ST_HN_001',
-          name: 'Hồ Gươm',
-          city: 'Hà Nội',
-          address: 'Hoàn Kiếm, Hà Nội',
-          point: LatLng(21.0287, 105.8522),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=21.0287,105.8522',
-          bikeCount: 9,
-          availableSlots: 8,
-          isActive: true,
-        ),
-        BikeStation(
-          id: 'ST_HN_002',
-          name: 'Nhà hát Lớn',
-          city: 'Hà Nội',
-          address: 'Tràng Tiền, Hoàn Kiếm, Hà Nội',
-          point: LatLng(21.0245, 105.8570),
-          googleMapUrl:
-              'https://www.google.com/maps/search/?api=1&query=21.0245,105.8570',
-          bikeCount: 7,
-          availableSlots: 4,
-          isActive: true,
-        ),
-      ];
+    BikeStation(
+      id: 'ST_HCM_001',
+      name: 'Công viên 30/4',
+      city: 'TP.HCM',
+      address: 'Lê Duẩn, Bến Nghé, Quận 1, TP.HCM',
+      point: LatLng(10.7791, 106.6998),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=10.7791,106.6998',
+      bikeCount: 10,
+      availableSlots: 6,
+      isActive: true,
+    ),
+    BikeStation(
+      id: 'ST_HCM_002',
+      name: 'Công viên Tao Đàn',
+      city: 'TP.HCM',
+      address: 'Trương Định, Bến Thành, Quận 1, TP.HCM',
+      point: LatLng(10.7769, 106.6918),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=10.7769,106.6918',
+      bikeCount: 13,
+      availableSlots: 2,
+      isActive: true,
+    ),
+    BikeStation(
+      id: 'ST_HCM_003',
+      name: 'Trống Đồng',
+      city: 'TP.HCM',
+      address: '12B CMT8, Bến Thành, Quận 1, TP.HCM',
+      point: LatLng(10.7760, 106.6942),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=10.7760,106.6942',
+      bikeCount: 13,
+      availableSlots: 6,
+      isActive: true,
+    ),
+    BikeStation(
+      id: 'ST_HN_001',
+      name: 'Hồ Gươm',
+      city: 'Hà Nội',
+      address: 'Hoàn Kiếm, Hà Nội',
+      point: LatLng(21.0287, 105.8522),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=21.0287,105.8522',
+      bikeCount: 9,
+      availableSlots: 8,
+      isActive: true,
+    ),
+    BikeStation(
+      id: 'ST_HN_002',
+      name: 'Nhà hát Lớn',
+      city: 'Hà Nội',
+      address: 'Tràng Tiền, Hoàn Kiếm, Hà Nội',
+      point: LatLng(21.0245, 105.8570),
+      googleMapUrl:
+          'https://www.google.com/maps/search/?api=1&query=21.0245,105.8570',
+      bikeCount: 7,
+      availableSlots: 4,
+      isActive: true,
+    ),
+  ];
+
+  String _normalizeEmail(String value) => value.trim().toLowerCase();
+
+  String _normalizePhone(String value) {
+    final raw = value.trim().replaceAll(RegExp(r'[^0-9+]'), '');
+    if (raw.isEmpty) return raw;
+    if (raw.startsWith('+')) return raw.substring(1);
+    if (raw.startsWith('0')) return '84${raw.substring(1)}';
+    return raw;
+  }
+
+  String _newEmployeeCode() => 'U${100000 + _rnd.nextInt(900000)}';
+
+  Future<void> _ensureIdentityNotBlocked({
+    required String email,
+    required String phone,
+  }) async {
+    final db = _db;
+    if (db == null) return;
+
+    final emailKey = 'email_${_normalizeEmail(email)}';
+    final phoneKey = 'phone_${_normalizePhone(phone)}';
+
+    final snaps = await Future.wait([
+      db.collection('blocked_contacts').doc(emailKey).get(),
+      if (phone.trim().isNotEmpty)
+        db.collection('blocked_contacts').doc(phoneKey).get(),
+    ]);
+
+    if (snaps.any((s) => s.exists)) {
+      throw Exception(
+        'Email hoặc số điện thoại này đã bị khóa vĩnh viễn do chưa thanh toán công nợ.',
+      );
+    }
+  }
+
+  Future<void> _ensurePhoneAvailable(String phone) async {
+    final db = _db;
+    if (db == null) return;
+
+    final phoneNormalized = _normalizePhone(phone);
+    final existing = await db
+        .collection('users')
+        .where('phoneNormalized', isEqualTo: phoneNormalized)
+        .limit(1)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      throw Exception('Số điện thoại này đã được sử dụng.');
+    }
+  }
 
   Future<MobileUserProfile> signIn({
-    required String identifier,
+    required String email,
     required String password,
-    required bool usePhone,
   }) async {
+    final cleanEmail = _normalizeEmail(email);
+    final cleanPassword = password.trim();
+
+    if (cleanEmail.isEmpty || !cleanEmail.contains('@')) {
+      throw Exception('Vui lòng nhập email hợp lệ.');
+    }
+    if (cleanPassword.isEmpty) {
+      throw Exception('Vui lòng nhập mật khẩu.');
+    }
+    if (cleanPassword.length < 6) {
+      throw Exception('Mật khẩu phải có ít nhất 6 ký tự.');
+    }
+
     if (_useLocalDemo) {
-      final account = _demoAccounts[identifier.trim()];
-      if (account == null || account.password != password.trim()) {
-        throw Exception('Thông tin đăng nhập không đúng.');
+      final account = _demoAccounts[cleanEmail];
+      if (account == null) {
+        throw Exception('Không tìm thấy tài khoản với email này.');
       }
-      final profile = _demoProfileFromAccount(account).copyWith(
-        lastLoginAt: DateTime.now(),
-      );
+      if (account.password != cleanPassword) {
+        throw Exception('Mật khẩu không đúng.');
+      }
+      final profile = _demoProfileFromAccount(
+        account,
+      ).copyWith(lastLoginAt: DateTime.now());
       _pushDemoProfile(profile);
       await addLoginEvent(profile.employeeCode);
       return profile;
     }
 
-    if (usePhone) {
-      throw Exception(
-        'Bản MVP hiện mới hỗ trợ email/password thật. Phone login đang để chế độ demo.',
-      );
-    }
+    await _ensureIdentityNotBlocked(email: cleanEmail, phone: '');
 
-    final cred = await _auth!.signInWithEmailAndPassword(
-      email: identifier.trim(),
-      password: password.trim(),
-    );
+    UserCredential cred;
+    try {
+      cred = await _auth!.signInWithEmailAndPassword(
+        email: cleanEmail,
+        password: cleanPassword,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-disabled') {
+        throw Exception(
+          'Tài khoản của bạn đã bị khóa vĩnh viễn do chưa thanh toán công nợ.',
+        );
+      }
+      if (e.code == 'wrong-password' ||
+          e.code == 'invalid-credential' ||
+          e.code == 'user-not-found') {
+        throw Exception('Email hoặc mật khẩu không đúng.');
+      }
+      rethrow;
+    }
 
     final uid = cred.user!.uid;
     final profile = await getOrCreateUserProfile(
       uid: uid,
-      email: cred.user!.email,
+      email: cred.user!.email ?? cleanEmail,
       phone: cred.user!.phoneNumber,
-      fullName: cred.user!.displayName ?? 'Người dùng mới',
+      fullName: cred.user!.displayName ?? 'Người dùng UTE-GO',
     );
+
+    if (!profile.isActive) {
+      await _auth!.signOut();
+      throw Exception(
+        'Tài khoản của bạn đã bị khóa vĩnh viễn do chưa thanh toán công nợ.',
+      );
+    }
 
     await addLoginEvent(profile.employeeCode);
     return profile;
@@ -195,55 +287,71 @@ class MobileUserRepo {
 
   Future<MobileUserProfile> register({
     required String fullName,
-    required String employeeCode,
-    required String identifier,
+    required String email,
+    required String phone,
     required String password,
-    required bool usePhone,
   }) async {
+    final cleanEmail = _normalizeEmail(email);
+    final cleanPhone = _normalizePhone(phone);
+    final cleanPassword = password.trim();
+
+    if (cleanEmail.isEmpty || !cleanEmail.contains('@')) {
+      throw Exception('Đăng ký bắt buộc phải có email hợp lệ.');
+    }
+    if (cleanPhone.isEmpty) {
+      throw Exception('Đăng ký bắt buộc phải có số điện thoại.');
+    }
+    if (cleanPassword.isEmpty) {
+      throw Exception('Đăng ký bắt buộc phải có mật khẩu.');
+    }
+    if (cleanPassword.length < 6) {
+      throw Exception('Mật khẩu phải có ít nhất 6 ký tự.');
+    }
+
+    final generatedCode = _newEmployeeCode();
+
     if (_useLocalDemo) {
       final uid = 'demo_${DateTime.now().millisecondsSinceEpoch}';
       final account = _DemoAccount(
         uid: uid,
-        email: usePhone ? null : identifier.trim(),
-        phone: usePhone ? identifier.trim() : null,
-        password: password.trim(),
-        employeeCode: employeeCode.trim(),
-        fullName: fullName.trim(),
-        balance: 30000,
+        email: cleanEmail,
+        phone: cleanPhone,
+        password: cleanPassword,
+        employeeCode: generatedCode,
+        fullName: fullName.trim().isEmpty ? 'Người dùng UTE-GO' : fullName.trim(),
+        balance: 3000000,
       );
-      _demoAccounts[identifier.trim()] = account;
+      _demoAccounts[cleanEmail] = account;
+      _demoAccounts[cleanPhone] = account;
       final profile = _demoProfileFromAccount(account);
       _pushDemoProfile(profile);
       await addLoginEvent(profile.employeeCode);
       return profile;
     }
 
-    if (usePhone) {
-      throw Exception(
-        'Bản MVP hiện mới hỗ trợ email/password thật. Phone register đang để chế độ demo.',
-      );
-    }
+    await _ensureIdentityNotBlocked(email: cleanEmail, phone: cleanPhone);
+    await _ensurePhoneAvailable(cleanPhone);
 
     final cred = await _auth!.createUserWithEmailAndPassword(
-      email: identifier.trim(),
-      password: password.trim(),
+      email: cleanEmail,
+      password: cleanPassword,
     );
 
-    final uid = cred.user!.uid;
     final profile = MobileUserProfile(
-      uid: uid,
-      employeeCode: employeeCode.trim(),
-      fullName: fullName.trim(),
-      phone: null,
-      email: identifier.trim(),
+      uid: cred.user!.uid,
+      employeeCode: generatedCode,
+      fullName: fullName.trim().isEmpty ? 'Người dùng UTE-GO' : fullName.trim(),
+      phone: cleanPhone,
+      email: cleanEmail,
       role: 'user',
-      balance: 30000,
+      balance: 3000000,
       depositLocked: 0,
       isActive: true,
       currentSessionId: null,
       createdAt: DateTime.now(),
       lastLoginAt: DateTime.now(),
     );
+
     await _saveUserProfile(profile);
     await addLoginEvent(profile.employeeCode);
     return profile;
@@ -278,7 +386,7 @@ class MobileUserRepo {
       phone: phone,
       email: email,
       role: 'user',
-      balance: 30000,
+      balance: 3000000,
       depositLocked: 0,
       isActive: true,
       currentSessionId: null,
@@ -332,11 +440,13 @@ class MobileUserRepo {
       Future.microtask(() => _demoStationsCtl.add(_seedStations));
       return _demoStationsCtl.stream;
     }
-    return db.collection('stations').where('isActive', isEqualTo: true).snapshots().map(
-      (snap) {
-        return snap.docs.map((doc) => _stationFromDoc(doc)).toList();
-      },
-    );
+    return db
+        .collection('stations')
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snap) {
+          return snap.docs.map((doc) => _stationFromDoc(doc)).toList();
+        });
   }
 
   Stream<UserRideSession?> watchCurrentSession(String uid) {
@@ -356,9 +466,9 @@ class MobileUserRepo {
         .limit(1)
         .snapshots()
         .map((snap) {
-      if (snap.docs.isEmpty) return null;
-      return _sessionFromDoc(snap.docs.first);
-    });
+          if (snap.docs.isEmpty) return null;
+          return _sessionFromDoc(snap.docs.first);
+        });
   }
 
   Stream<RentalVehicle?> watchVehicle(String vehicleId) {
@@ -467,10 +577,23 @@ class MobileUserRepo {
     required MobileUserProfile user,
     required RentalVehicle vehicle,
     required PricingConfig pricing,
+    required int rentalHours,
   }) async {
-    if (user.balance < pricing.minimumRequiredBalance) {
-      throw Exception('Số dư chưa đủ 20.000 VND để bắt đầu chuyến đi.');
+    if (rentalHours < 1) {
+      throw Exception('Thời gian thuê phải từ 1 giờ trở lên.');
     }
+
+    final usageFee = pricing.pricePerHour * rentalHours;
+    final totalRequired = usageFee + pricing.depositAmount;
+    final remainingSeconds = rentalHours * 3600;
+
+    if (user.balance < totalRequired) {
+      throw Exception(
+        'Số dư chưa đủ để bắt đầu chuyến đi $rentalHours giờ. '
+        'Cần tối thiểu ${totalRequired.toString()} VND.',
+      );
+    }
+
     if (vehicle.isInUse) {
       throw Exception('Xe đang được người khác sử dụng.');
     }
@@ -493,15 +616,23 @@ class MobileUserRepo {
         pausedAt: null,
         endedAt: null,
         lastHeartbeatAt: now,
+        runningSince: now,
+        warn15mSentAt: null,
+        expiredAt: null,
+        nextPenaltyAt: null,
         pricePerHour: pricing.pricePerHour,
         depositAmount: pricing.depositAmount,
-        mainAmountUsed: pricing.pricePerHour,
+        mainAmountUsed: usageFee,
         depositUsed: 0,
-        remainingBalanceSnapshot: user.balance - pricing.totalRequired,
-        remainingSeconds: 3600,
+        remainingBalanceSnapshot: user.balance - totalRequired,
+        remainingSeconds: remainingSeconds,
+        extendedSecondsTotal: 0,
+        overtimePenaltyCount: 0,
+        overtimePenaltyAmount: 0,
         canUnlock: true,
         routeIds: const [],
       );
+
       _activeSessions[user.uid] = session;
       _demoSessions[user.uid]?.add(session);
 
@@ -522,14 +653,20 @@ class MobileUserRepo {
         lastLocation: vehicle.lastLocation,
         updatedAt: now,
       );
+
       _vehicles[vehicle.id] = updatedVehicle;
       _demoVehicles[vehicle.id]?.add(updatedVehicle);
 
-      final updatedAccount = _demoAccounts.values.firstWhere((e) => e.uid == user.uid).copyWith(
-            balance: user.balance - pricing.totalRequired,
-          );
+      final updatedAccount = _demoAccounts.values
+          .firstWhere((e) => e.uid == user.uid)
+          .copyWith(balance: user.balance - totalRequired);
+
       _replaceDemoAccount(updatedAccount);
-      _pushDemoProfile(_demoProfileFromAccount(updatedAccount).copyWith(currentSessionId: sessionId));
+      _pushDemoProfile(
+        _demoProfileFromAccount(
+          updatedAccount,
+        ).copyWith(currentSessionId: sessionId),
+      );
       return;
     }
 
@@ -556,12 +693,19 @@ class MobileUserRepo {
       'pausedAt': null,
       'endedAt': null,
       'lastHeartbeatAt': Timestamp.fromDate(now),
+      'runningSince': Timestamp.fromDate(now),
+      'warn15mSentAt': null,
+      'expiredAt': null,
+      'nextPenaltyAt': null,
       'pricePerHour': pricing.pricePerHour,
       'depositAmount': pricing.depositAmount,
-      'mainAmountUsed': pricing.pricePerHour,
+      'mainAmountUsed': usageFee,
       'depositUsed': 0,
-      'remainingBalanceSnapshot': user.balance - pricing.totalRequired,
-      'remainingSeconds': 3600,
+      'remainingBalanceSnapshot': user.balance - totalRequired,
+      'remainingSeconds': remainingSeconds,
+      'extendedSecondsTotal': 0,
+      'overtimePenaltyCount': 0,
+      'overtimePenaltyAmount': 0,
       'canUnlock': true,
       'routeIds': [],
       'createdAt': FieldValue.serverTimestamp(),
@@ -569,6 +713,12 @@ class MobileUserRepo {
     });
 
     batch.set(vehicleRef, {
+      'id': vehicle.id,
+      'name': vehicle.name,
+      'lastLocation': {
+        'lat': vehicle.lastLocation.latitude,
+        'lon': vehicle.lastLocation.longitude,
+      },
       'isLocked': false,
       'isRunning': true,
       'isPaused': false,
@@ -579,7 +729,7 @@ class MobileUserRepo {
     }, SetOptions(merge: true));
 
     batch.set(userRef, {
-      'balance': user.balance - pricing.totalRequired,
+      'balance': user.balance - totalRequired,
       'depositLocked': pricing.depositAmount,
       'currentSessionId': sessionId,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -602,7 +752,8 @@ class MobileUserRepo {
       'sessionId': sessionId,
       'type': 'ride_status',
       'title': '${vehicle.name} đang được sử dụng',
-      'body': 'Bạn còn 60 phút sử dụng với số dư hiện tại.',
+      'body':
+          'Bạn đã chọn $rentalHours giờ. Còn ${remainingSeconds ~/ 60} phút sử dụng.',
       'routeId': null,
       'isRead': false,
       'createdAt': FieldValue.serverTimestamp(),
@@ -611,19 +762,20 @@ class MobileUserRepo {
     batch.set(tx1, {
       'uid': user.uid,
       'type': 'rent_fee',
-      'amount': pricing.pricePerHour,
+      'amount': usageFee,
       'balanceBefore': user.balance,
-      'balanceAfter': user.balance - pricing.pricePerHour,
-      'description': 'Thuê 1 giờ đầu cho ${vehicle.name}',
+      'balanceAfter': user.balance - usageFee,
+      'description': 'Thuê $rentalHours giờ cho ${vehicle.name}',
       'sessionId': sessionId,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
     batch.set(tx2, {
       'uid': user.uid,
       'type': 'deposit_lock',
       'amount': pricing.depositAmount,
-      'balanceBefore': user.balance - pricing.pricePerHour,
-      'balanceAfter': user.balance - pricing.totalRequired,
+      'balanceBefore': user.balance - usageFee,
+      'balanceAfter': user.balance - totalRequired,
       'description': 'Giữ cọc cho ${vehicle.name}',
       'sessionId': sessionId,
       'createdAt': FieldValue.serverTimestamp(),
@@ -642,9 +794,11 @@ class MobileUserRepo {
 
   Future<void> endRide(UserRideSession session) async {
     final now = DateTime.now();
+
     if (_db == null) {
       _activeSessions.remove(session.uid);
       _demoSessions[session.uid]?.add(null);
+
       final vehicle = _vehicles[session.vehicleId];
       if (vehicle != null) {
         final updated = RentalVehicle(
@@ -667,7 +821,10 @@ class MobileUserRepo {
         _vehicles[vehicle.id] = updated;
         _demoVehicles[vehicle.id]?.add(updated);
       }
-      final account = _demoAccounts.values.firstWhere((e) => e.uid == session.uid);
+
+      final account = _demoAccounts.values.firstWhere(
+        (e) => e.uid == session.uid,
+      );
       _pushDemoProfile(
         _demoProfileFromAccount(account).copyWith(currentSessionId: null),
       );
@@ -707,7 +864,7 @@ class MobileUserRepo {
       'vehicleId': session.vehicleId,
       'sessionId': session.sessionId,
       'uid': session.uid,
-      'type': 'end_ride',
+      'type': 'lock',
       'status': 'pending',
       'source': 'mobile',
       'createdAt': FieldValue.serverTimestamp(),
@@ -720,13 +877,150 @@ class MobileUserRepo {
       'sessionId': session.sessionId,
       'type': 'ride_ended',
       'title': '${session.vehicleName} đã kết thúc chuyến đi',
-      'body': 'Cảm ơn bạn đã sử dụng xe.',
+      'body': 'Xe đã khóa. Cảm ơn bạn đã sử dụng.',
       'routeId': null,
       'isRead': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
 
     await batch.commit();
+  }
+
+  Future<void> extendRide({
+    required MobileUserProfile user,
+    required UserRideSession session,
+    required int extraHours,
+  }) async {
+    if (extraHours < 1) {
+      throw Exception('Thời gian thuê thêm phải từ 1 giờ trở lên.');
+    }
+
+    final extraSeconds = extraHours * 3600;
+    final extraFee = session.pricePerHour * extraHours;
+    final now = DateTime.now();
+
+    if (_db == null) {
+      final account = _demoAccounts.values.firstWhere((e) => e.uid == user.uid);
+      if (account.balance < extraFee) {
+        throw Exception('Số dư không đủ để thuê thêm.');
+      }
+
+      final current = _activeSessions[user.uid];
+      if (current == null) {
+        throw Exception('Không tìm thấy phiên thuê đang hoạt động.');
+      }
+
+      final folded = _foldRemainingSeconds(current, now);
+      final updated = UserRideSession(
+        sessionId: current.sessionId,
+        uid: current.uid,
+        employeeCode: current.employeeCode,
+        userName: current.userName,
+        vehicleId: current.vehicleId,
+        vehicleName: current.vehicleName,
+        stationStartId: current.stationStartId,
+        stationEndId: current.stationEndId,
+        status: current.status,
+        startedAt: current.startedAt,
+        pausedAt: current.pausedAt,
+        endedAt: current.endedAt,
+        lastHeartbeatAt: now,
+        runningSince: current.isPaused ? null : now,
+        warn15mSentAt: null,
+        expiredAt: null,
+        nextPenaltyAt: null,
+        pricePerHour: current.pricePerHour,
+        depositAmount: current.depositAmount,
+        mainAmountUsed: current.mainAmountUsed + extraFee,
+        depositUsed: current.depositUsed,
+        remainingBalanceSnapshot: current.remainingBalanceSnapshot - extraFee,
+        remainingSeconds: folded + extraSeconds,
+        extendedSecondsTotal: current.extendedSecondsTotal + extraSeconds,
+        overtimePenaltyCount: current.overtimePenaltyCount,
+        overtimePenaltyAmount: current.overtimePenaltyAmount,
+        canUnlock: current.canUnlock,
+        routeIds: current.routeIds,
+      );
+
+      _activeSessions[user.uid] = updated;
+      _demoSessions[user.uid]?.add(updated);
+
+      final updatedAccount = account.copyWith(balance: account.balance - extraFee);
+      _replaceDemoAccount(updatedAccount);
+      _pushDemoProfile(
+        _demoProfileFromAccount(updatedAccount).copyWith(
+          currentSessionId: current.sessionId,
+        ),
+      );
+      return;
+    }
+
+    final sessionRef = _db!.collection('ride_sessions').doc(session.sessionId);
+    final userRef = _db!.collection('users').doc(user.uid);
+    final txRef = _db!.collection('wallet_transactions').doc();
+    final noticeRef = _db!.collection('notifications').doc();
+
+    await _db!.runTransaction((tx) async {
+      final freshSessionSnap = await tx.get(sessionRef);
+      final freshUserSnap = await tx.get(userRef);
+
+      if (!freshSessionSnap.exists || !freshUserSnap.exists) {
+        throw Exception('Phiên thuê hoặc người dùng không còn tồn tại.');
+      }
+
+      final freshSession = _sessionFromDoc(freshSessionSnap);
+      final freshUser = _profileFromDoc(freshUserSnap);
+
+      if (!freshSession.isActive && !freshSession.isPaused) {
+        throw Exception('Phiên thuê đã kết thúc, không thể thuê thêm.');
+      }
+
+      if (freshUser.balance < extraFee) {
+        throw Exception('Số dư không đủ để thuê thêm.');
+      }
+
+      final folded = _foldRemainingSeconds(freshSession, now);
+
+      tx.set(sessionRef, {
+        'remainingSeconds': folded + extraSeconds,
+        'runningSince': freshSession.isPaused ? null : Timestamp.fromDate(now),
+        'warn15mSentAt': null,
+        'expiredAt': null,
+        'nextPenaltyAt': null,
+        'extendedSecondsTotal': FieldValue.increment(extraSeconds),
+        'mainAmountUsed': FieldValue.increment(extraFee),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      tx.set(userRef, {
+        'balance': freshUser.balance - extraFee,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      tx.set(txRef, {
+        'uid': user.uid,
+        'type': 'rent_extend',
+        'amount': extraFee,
+        'balanceBefore': freshUser.balance,
+        'balanceAfter': freshUser.balance - extraFee,
+        'description': 'Thuê thêm $extraHours giờ cho ${freshSession.vehicleName}',
+        'sessionId': freshSession.sessionId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      tx.set(noticeRef, {
+        'uid': user.uid,
+        'target': 'user',
+        'vehicleId': freshSession.vehicleId,
+        'sessionId': freshSession.sessionId,
+        'type': 'ride_extended',
+        'title': 'Đã thuê thêm $extraHours giờ',
+        'body': 'Thời gian sử dụng đã được cộng thêm tự động.',
+        'routeId': null,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    });
   }
 
   Future<void> changePassword({
@@ -762,20 +1056,47 @@ class MobileUserRepo {
       'employeeCode': profile.employeeCode,
       'fullName': profile.fullName,
       'phone': profile.phone,
+      'phoneNormalized': _normalizePhone(profile.phone ?? ''),
       'email': profile.email,
+      'emailLower': _normalizeEmail(profile.email ?? ''),
       'role': profile.role,
       'balance': profile.balance,
       'depositLocked': profile.depositLocked,
       'isActive': profile.isActive,
       'currentSessionId': profile.currentSessionId,
+      'debtStartedAt': profile.debtStartedAt == null
+          ? null
+          : Timestamp.fromDate(profile.debtStartedAt!),
+      'debtDueAt': profile.debtDueAt == null
+          ? null
+          : Timestamp.fromDate(profile.debtDueAt!),
+      'blockedAt': profile.blockedAt == null
+          ? null
+          : Timestamp.fromDate(profile.blockedAt!),
+      'blockReason': profile.blockReason,
       'createdAt': Timestamp.fromDate(profile.createdAt),
       'lastLoginAt': Timestamp.fromDate(profile.lastLoginAt),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
-  Future<void> _updateSessionStatus(UserRideSession session, String status) async {
+  int _foldRemainingSeconds(UserRideSession session, DateTime now) {
+    if (session.isPaused || session.runningSince == null) {
+      return session.remainingSeconds.clamp(0, 999999).toInt();
+    }
+
+    final elapsed = now.difference(session.runningSince!).inSeconds;
+    final remaining = session.remainingSeconds - elapsed;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  Future<void> _updateSessionStatus(
+    UserRideSession session,
+    String status,
+  ) async {
     final now = DateTime.now();
+    final foldedRemaining = _foldRemainingSeconds(session, now);
+
     if (_db == null) {
       final next = UserRideSession(
         sessionId: session.sessionId,
@@ -791,24 +1112,33 @@ class MobileUserRepo {
         pausedAt: status == 'paused' ? now : null,
         endedAt: session.endedAt,
         lastHeartbeatAt: now,
+        runningSince: status == 'active' ? now : null,
+        warn15mSentAt: session.warn15mSentAt,
+        expiredAt: session.expiredAt,
+        nextPenaltyAt: session.nextPenaltyAt,
         pricePerHour: session.pricePerHour,
         depositAmount: session.depositAmount,
         mainAmountUsed: session.mainAmountUsed,
         depositUsed: session.depositUsed,
         remainingBalanceSnapshot: session.remainingBalanceSnapshot,
-        remainingSeconds: session.remainingSeconds,
+        remainingSeconds: foldedRemaining,
+        extendedSecondsTotal: session.extendedSecondsTotal,
+        overtimePenaltyCount: session.overtimePenaltyCount,
+        overtimePenaltyAmount: session.overtimePenaltyAmount,
         canUnlock: session.canUnlock,
         routeIds: session.routeIds,
       );
+
       _activeSessions[session.uid] = next;
       _demoSessions[session.uid]?.add(next);
+
       final vehicle = _vehicles[session.vehicleId];
       if (vehicle != null) {
-        _vehicles[vehicle.id] = RentalVehicle(
+        final updatedVehicle = RentalVehicle(
           id: vehicle.id,
           name: vehicle.name,
           batteryPercent: vehicle.batteryPercent,
-          isLocked: vehicle.isLocked,
+          isLocked: status == 'paused',
           isRunning: status == 'active',
           isPaused: status == 'paused',
           isInUse: true,
@@ -821,39 +1151,43 @@ class MobileUserRepo {
           lastLocation: vehicle.lastLocation,
           updatedAt: now,
         );
-        _demoVehicles[vehicle.id]?.add(_vehicles[vehicle.id]);
+        _vehicles[vehicle.id] = updatedVehicle;
+        _demoVehicles[vehicle.id]?.add(updatedVehicle);
       }
       return;
     }
 
     final batch = _db!.batch();
+
     batch.set(
       _db!.collection('ride_sessions').doc(session.sessionId),
       {
         'status': status,
         'pausedAt': status == 'paused' ? Timestamp.fromDate(now) : null,
+        'remainingSeconds': foldedRemaining,
+        'runningSince': status == 'active' ? Timestamp.fromDate(now) : null,
         'updatedAt': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),
     );
-    batch.set(
-      _db!.collection('vehicles').doc(session.vehicleId),
-      {
-        'isPaused': status == 'paused',
-        'isRunning': status == 'active',
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+
+    batch.set(_db!.collection('vehicles').doc(session.vehicleId), {
+      'isLocked': status == 'paused',
+      'isPaused': status == 'paused',
+      'isRunning': status == 'active',
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
     batch.set(_db!.collection('vehicle_commands').doc(), {
       'vehicleId': session.vehicleId,
       'sessionId': session.sessionId,
       'uid': session.uid,
-      'type': status == 'paused' ? 'pause' : 'resume',
+      'type': status == 'paused' ? 'lock' : 'unlock',
       'status': 'pending',
       'source': 'mobile',
       'createdAt': FieldValue.serverTimestamp(),
     });
+
     batch.set(_db!.collection('notifications').doc(), {
       'uid': session.uid,
       'target': 'user',
@@ -864,16 +1198,19 @@ class MobileUserRepo {
           ? '${session.vehicleName} đang tạm ngưng'
           : '${session.vehicleName} tiếp tục sử dụng',
       'body': status == 'paused'
-          ? 'Bạn có thể tiếp tục bất cứ lúc nào.'
-          : 'Chuyến đi đang tiếp tục.',
+          ? 'Xe đã khóa tạm thời.'
+          : 'Xe đã mở khóa để tiếp tục sử dụng.',
       'routeId': null,
       'isRead': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
     await batch.commit();
   }
 
-  MobileUserProfile _profileFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+  MobileUserProfile _profileFromDoc(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final m = doc.data() ?? {};
     return MobileUserProfile(
       uid: (m['uid'] ?? doc.id).toString(),
@@ -888,6 +1225,10 @@ class MobileUserRepo {
       currentSessionId: m['currentSessionId']?.toString(),
       createdAt: _asDate(m['createdAt']),
       lastLoginAt: _asDate(m['lastLoginAt']),
+      debtStartedAt: _asNullableDate(m['debtStartedAt']),
+      debtDueAt: _asNullableDate(m['debtDueAt']),
+      blockedAt: _asNullableDate(m['blockedAt']),
+      blockReason: m['blockReason']?.toString(),
     );
   }
 
@@ -922,41 +1263,66 @@ class MobileUserRepo {
       stationEndId: m['stationEndId']?.toString(),
       status: (m['status'] ?? 'pending').toString(),
       startedAt: _asDate(m['startedAt']),
-      pausedAt: m['pausedAt'] == null ? null : _asDate(m['pausedAt']),
-      endedAt: m['endedAt'] == null ? null : _asDate(m['endedAt']),
+      pausedAt: _asNullableDate(m['pausedAt']),
+      endedAt: _asNullableDate(m['endedAt']),
       lastHeartbeatAt: _asDate(m['lastHeartbeatAt']),
+      runningSince: _asNullableDate(m['runningSince']),
+      warn15mSentAt: _asNullableDate(m['warn15mSentAt']),
+      expiredAt: _asNullableDate(m['expiredAt']),
+      nextPenaltyAt: _asNullableDate(m['nextPenaltyAt']),
       pricePerHour: _asInt(m['pricePerHour'], 10000),
       depositAmount: _asInt(m['depositAmount'], 10000),
       mainAmountUsed: _asInt(m['mainAmountUsed'], 0),
       depositUsed: _asInt(m['depositUsed'], 0),
       remainingBalanceSnapshot: _asInt(m['remainingBalanceSnapshot'], 0),
       remainingSeconds: _asInt(m['remainingSeconds'], 0),
+      extendedSecondsTotal: _asInt(m['extendedSecondsTotal'], 0),
+      overtimePenaltyCount: _asInt(m['overtimePenaltyCount'], 0),
+      overtimePenaltyAmount: _asInt(m['overtimePenaltyAmount'], 0),
       canUnlock: _asBool(m['canUnlock'], true),
-      routeIds: ((m['routeIds'] as List?) ?? const []).map((e) => e.toString()).toList(),
+      routeIds: ((m['routeIds'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 
   RentalVehicle _vehicleFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final m = doc.data() ?? {};
+
     final loc = (m['lastLocation'] as Map?)?.cast<String, dynamic>() ?? {};
+    final pos = (m['position'] as List?) ?? const [];
+
+    final double lat = loc['lat'] != null
+        ? _asDouble(loc['lat'], 0.0)
+        : (pos.isNotEmpty ? _asDouble(pos[0], 0.0) : 0.0);
+
+    final double lon = loc['lon'] != null
+        ? _asDouble(loc['lon'], 0.0)
+        : (pos.length > 1 ? _asDouble(pos[1], 0.0) : 0.0);
+
+    final battery = m['batteryPercent'] != null
+        ? _asInt(m['batteryPercent'], 0)
+        : _asInt(m['battery'], 0);
+
+    final double totalDistance = m['distance_m'] != null
+        ? _asDouble(m['distance_m'], 0.0)
+        : _asDouble(m['totalKm'], 0.0);
+
     return RentalVehicle(
       id: (m['id'] ?? doc.id).toString(),
-      name: (m['name'] ?? '').toString(),
-      batteryPercent: _asInt(m['batteryPercent'], 0),
+      name: (m['name'] ?? 'Xe ${doc.id}').toString(),
+      batteryPercent: battery,
       isLocked: _asBool(m['isLocked'], true),
       isRunning: _asBool(m['isRunning'], false),
       isPaused: _asBool(m['isPaused'], false),
       isInUse: _asBool(m['isInUse'], false),
       currentUserId: m['currentUserId']?.toString(),
       currentSessionId: m['currentSessionId']?.toString(),
-      totalKm: _asDouble(m['totalKm'], 0),
+      totalKm: totalDistance,
       temp: _asDouble(m['temp'], 0),
       hum: _asDouble(m['hum'], 0),
       dust: _asDouble(m['dust'], 0),
-      lastLocation: LatLng(
-        _asDouble(loc['lat'], 0),
-        _asDouble(loc['lon'], 0),
-      ),
+      lastLocation: LatLng(lat, lon),
       updatedAt: _asDate(m['updatedAt']),
     );
   }
@@ -981,10 +1347,7 @@ class MobileUserRepo {
     final rawPoints = (m['points'] as List?) ?? const [];
     final points = rawPoints.map((e) {
       final p = Map<String, dynamic>.from(e as Map);
-      return LatLng(
-        _asDouble(p['lat'], 0),
-        _asDouble(p['lon'], 0),
-      );
+      return LatLng(_asDouble(p['lat'], 0), _asDouble(p['lon'], 0));
     }).toList();
     return MobileHistoryRoute(
       id: doc.id,
@@ -1019,7 +1382,7 @@ class MobileUserRepo {
         title: 'Cảnh báo pin thấp',
         body: 'Nếu xe còn dưới 20% pin, app sẽ nhắc bạn trả xe.',
         type: 'battery_low',
-        vehicleId: 'V1',
+        vehicleId: 'haq-trk-003',
         sessionId: null,
         routeId: null,
         isRead: false,
@@ -1093,10 +1456,19 @@ class MobileUserRepo {
     return double.tryParse(value?.toString() ?? '') ?? fallback;
   }
 
+  DateTime? _asNullableDate(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    final parsed = DateTime.tryParse(value.toString());
+    return parsed;
+  }
+
   DateTime _asDate(dynamic value) {
     if (value is Timestamp) return value.toDate();
     if (value is DateTime) return value;
-    return DateTime.now();
+    final parsed = DateTime.tryParse(value?.toString() ?? '');
+    return parsed ?? DateTime.now();
   }
 }
 
@@ -1119,10 +1491,7 @@ class _DemoAccount {
     required this.balance,
   });
 
-  _DemoAccount copyWith({
-    String? password,
-    int? balance,
-  }) {
+  _DemoAccount copyWith({String? password, int? balance}) {
     return _DemoAccount(
       uid: uid,
       email: email,

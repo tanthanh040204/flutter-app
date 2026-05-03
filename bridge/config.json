@@ -3,7 +3,7 @@
     "serviceAccountPath": "./serviceAccountKey.json"
   },
   "mqtt": {
-    "host": "flutter-app-1d64c6a1.a01.euc1.aws.hivemq.cloud",
+    "host": "2ed5578f917243cf91e7cb87e7c341fb.s1.eu.hivemq.cloud",
     "port": 8883,
     "username": "tanthanh1",
     "password": "Tao040204@",

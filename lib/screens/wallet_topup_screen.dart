@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../l10n/app_strings.dart';
 import '../providers/mobile_auth_provider.dart';
 import '../services/mobile_user_repo.dart';
 
@@ -24,16 +25,17 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tr;
     final user = context.watch<MobileAuthProvider>().currentUser;
     final uid = user?.uid ?? 'unknown';
     final transferContent = 'NAPTIEN_$uid';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nạp tiền')),
+      appBar: AppBar(title: Text(t.topUp)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Chuyển khoản theo QR bên dưới', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          Text(t.topUpByQr, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
           Center(
             child: QrImageView(
@@ -42,15 +44,15 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Card(
+          Card(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ngân hàng: UTE Bank'),
-                  Text('Số tài khoản: 0123456789'),
-                  Text('Tên tài khoản: CONG TY UTE'),
+                  Text(t.bank),
+                  Text(t.accountNumber),
+                  Text(t.accountName),
                 ],
               ),
             ),
@@ -59,10 +61,10 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
           TextField(
             controller: amountCtl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Số tiền cần nạp'),
+            decoration: InputDecoration(labelText: t.topUpAmount),
           ),
           const SizedBox(height: 12),
-          SelectableText('Nội dung: $transferContent'),
+          SelectableText(t.transferContent(transferContent)),
           const SizedBox(height: 18),
           FilledButton(
             onPressed: loading || user == null
@@ -76,7 +78,7 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
                           );
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đã tạo yêu cầu nạp tiền.')),
+                        SnackBar(content: Text(t.topUpCreated)),
                       );
                     } finally {
                       if (mounted) setState(() => loading = false);
@@ -84,7 +86,7 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(loading ? 'Đang xử lý...' : 'Tôi đã chuyển khoản'),
+              child: Text(loading ? t.processing : t.transferred),
             ),
           )
         ],

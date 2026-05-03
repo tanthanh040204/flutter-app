@@ -27,19 +27,14 @@ class MobileAuthProvider extends ChangeNotifier {
   }
 
   Future<bool> login({
-    required String identifier,
+    required String email,
     required String password,
-    required bool usePhone,
   }) async {
     _loading = true;
     _error = null;
     notifyListeners();
     try {
-      final user = await _repo.signIn(
-        identifier: identifier,
-        password: password,
-        usePhone: usePhone,
-      );
+      final user = await _repo.signIn(email: email, password: password);
       await _bindProfile(user.uid);
       _currentUser = user;
       return true;
@@ -54,10 +49,9 @@ class MobileAuthProvider extends ChangeNotifier {
 
   Future<bool> register({
     required String fullName,
-    required String employeeCode,
-    required String identifier,
+    required String email,
+    required String phone,
     required String password,
-    required bool usePhone,
   }) async {
     _loading = true;
     _error = null;
@@ -65,10 +59,9 @@ class MobileAuthProvider extends ChangeNotifier {
     try {
       final user = await _repo.register(
         fullName: fullName,
-        employeeCode: employeeCode,
-        identifier: identifier,
+        email: email,
+        phone: phone,
         password: password,
-        usePhone: usePhone,
       );
       await _bindProfile(user.uid);
       _currentUser = user;
