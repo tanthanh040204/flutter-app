@@ -17,6 +17,7 @@ import '../models/rental_bill.dart';
 import '../services/mqtt_service.dart';
 import '../services/protocol_codec.dart';
 import '../services/user_wire_id.dart';
+import 'mobile_telemetry_provider.dart';
 
 /* Constants ---------------------------------------------------------- */
 const int kDefaultPricePerHour           = 10000;
@@ -42,10 +43,12 @@ enum RentalPhase {
 /* Public classes ----------------------------------------------------- */
 
 class MobileRideProvider extends ChangeNotifier {
-  MobileRideProvider(this._mqtt);
+  MobileRideProvider(this._mqtt, {MobileTelemetryProvider? telemetry})
+      : _telemetry = telemetry;
 
   /* --- private fields ------------------------------------------ */
   final MqttService               _mqtt;
+  final MobileTelemetryProvider?  _telemetry;
   StreamSubscription<ProtocolMessage>? _webAppSub;
   Timer?                          _timer;
   Timer?                          _pauseTimeoutTimer;
@@ -105,6 +108,7 @@ class MobileRideProvider extends ChangeNotifier {
     );
     _bikeId = bikeId;
     _subscribeWebApp(bikeId);
+    _telemetry?.watch(bikeId);
 
     phase     = RentalPhase.starting;
     lastError = null;
@@ -175,6 +179,10 @@ class MobileRideProvider extends ChangeNotifier {
     _webAppSub = null;
     _timer?.cancel();
     _pauseTimeoutTimer?.cancel();
+    final String? prevBike = _bikeId;
+    if (prevBike != null) {
+      _telemetry?.stopWatching(prevBike);
+    }
     _bikeId                = null;
     _startedAt             = null;
     _liveRemainingSeconds  = 0;

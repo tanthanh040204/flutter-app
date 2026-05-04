@@ -32,6 +32,7 @@ class MqttService extends ChangeNotifier {
   StreamSubscription? _messagesSub;
 
   final Map<String, StreamController<ProtocolMessage>> _topicCtls = {};
+  final Map<String, StreamController<String>> _rawTopicCtls = {};
   final Set<String> _subscribedTopics = {};
 
   /* --- public getters ------------------------------------------ */
@@ -135,15 +136,32 @@ class MqttService extends ChangeNotifier {
       topic,
       () => StreamController<ProtocolMessage>.broadcast(),
     );
-    if (!_subscribedTopics.contains(topic)) {
-      _subscribedTopics.add(topic);
-      debugPrint('[MQTT] register stream - topic: $topic, connected=$isConnected');
-      if (isConnected) {
-        debugPrint('[MQTT] subscribe - topic: $topic');
-        _client!.subscribe(topic, MqttQos.atLeastOnce);
-      }
-    }
+    _ensureSubscribed(topic);
     return ctl.stream;
+  }
+
+  /*
+   * Raw payload stream — yields the unparsed string received on `topic`.
+   * Used for topics whose payload is JSON (e.g. bike_id/data) and therefore
+   * not compatible with ProtocolCodec's "CMD=arg1,arg2" format.
+   */
+  Stream<String> rawStreamOf(String topic) {
+    final StreamController<String> ctl = _rawTopicCtls.putIfAbsent(
+      topic,
+      () => StreamController<String>.broadcast(),
+    );
+    _ensureSubscribed(topic);
+    return ctl.stream;
+  }
+
+  void _ensureSubscribed(String topic) {
+    if (_subscribedTopics.contains(topic)) return;
+    _subscribedTopics.add(topic);
+    debugPrint('[MQTT] register stream - topic: $topic, connected=$isConnected');
+    if (isConnected) {
+      debugPrint('[MQTT] subscribe - topic: $topic');
+      _client!.subscribe(topic, MqttQos.atLeastOnce);
+    }
   }
 
   void unsubscribe(String topic) {
@@ -153,6 +171,7 @@ class MqttService extends ChangeNotifier {
       _client!.unsubscribe(topic);
     }
     _topicCtls.remove(topic)?.close();
+    _rawTopicCtls.remove(topic)?.close();
   }
 
   bool publish(String topic, String payload) {
@@ -174,6 +193,10 @@ class MqttService extends ChangeNotifier {
       ctl.close();
     }
     _topicCtls.clear();
+    for (final StreamController<String> ctl in _rawTopicCtls.values) {
+      ctl.close();
+    }
+    _rawTopicCtls.clear();
     _client?.disconnect();
     super.dispose();
   }
@@ -206,8 +229,12 @@ class MqttService extends ChangeNotifier {
         msg.payload.message,
       );
       debugPrint('[MQTT] incoming - topic: ${event.topic} payload: $payload');
-      final ProtocolMessage decoded = ProtocolCodec.parse(payload);
-      _topicCtls[event.topic]?.add(decoded);
+
+      final rawCtl = _rawTopicCtls[event.topic];
+      if (rawCtl != null) rawCtl.add(payload);
+
+      final protoCtl = _topicCtls[event.topic];
+      if (protoCtl != null) protoCtl.add(ProtocolCodec.parse(payload));
     }
   }
 }

@@ -15,6 +15,7 @@ import 'providers/mobile_auth_provider.dart';
 import 'providers/mobile_notice_provider.dart';
 import 'providers/mobile_ride_provider.dart';
 import 'providers/mobile_stations_provider.dart';
+import 'providers/mobile_telemetry_provider.dart';
 import 'providers/mobile_wallet_provider.dart';
 import 'screens/mobile_bootstrap.dart';
 import 'services/mobile_user_repo.dart';
@@ -39,15 +40,26 @@ class TnGoUserApp extends StatelessWidget {
           create: (_) => MqttService(),
           lazy: false,
         ),
+        ChangeNotifierProvider<MobileTelemetryProvider>(
+          create: (context) =>
+              MobileTelemetryProvider(context.read<MqttService>()),
+          lazy: false,
+        ),
         ChangeNotifierProvider(
           create: (context) =>
               MobileAuthProvider(context.read<MobileUserRepo>()),
         ),
         ChangeNotifierProxyProvider<MobileAuthProvider, MobileRideProvider>(
-          create: (context) => MobileRideProvider(context.read<MqttService>()),
+          create: (context) => MobileRideProvider(
+            context.read<MqttService>(),
+            telemetry: context.read<MobileTelemetryProvider>(),
+          ),
           update: (context, auth, previous) {
-            final MobileRideProvider provider =
-                previous ?? MobileRideProvider(context.read<MqttService>());
+            final MobileRideProvider provider = previous ??
+                MobileRideProvider(
+                  context.read<MqttService>(),
+                  telemetry: context.read<MobileTelemetryProvider>(),
+                );
             provider.bindUser(auth.currentUser);
             return provider;
           },
