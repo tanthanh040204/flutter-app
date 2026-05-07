@@ -101,7 +101,7 @@ class MobileAuthProvider extends ChangeNotifier {
     required String newPassword,
   }) async {
     final MobileUserProfile? user = _currentUser;
-    if (user == null) throw Exception('Bạn chưa đăng nhập.');
+    if (user == null) throw Exception('You are not signed in.');
     await _repo.changePassword(
       uid: user.uid,
       currentPassword: currentPassword,

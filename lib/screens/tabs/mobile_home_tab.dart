@@ -18,10 +18,10 @@ import '../qr_scan_screen.dart';
 import '../wallet_topup_screen.dart';
 
 /* Constants ---------------------------------------------------------- */
-const Color  kHeaderGradientStart = Color(0xFF1557FF);
-const Color  kHeaderGradientEnd   = Color(0xFF2F80ED);
-const String kCurrencyLocale      = 'vi_VN';
-const String kCurrencySymbol      = 'đ';
+const Color kHeaderGradientStart = Color(0xFF1557FF);
+const Color kHeaderGradientEnd = Color(0xFF2F80ED);
+const String kCurrencyLocale = 'vi_VN';
+const String kCurrencySymbol = 'đ';
 
 /* Enums -------------------------------------------------------------- */
 /* Typedef / Function types ------------------------------------------ */
@@ -55,12 +55,17 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trang chủ')),
+      appBar: AppBar(title: const Text('Home')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildHeader(user.fullName, user.employeeCode, user.balance,
-              user.depositLocked, money),
+          _buildHeader(
+            user.fullName,
+            user.employeeCode,
+            user.balance,
+            user.depositLocked,
+            money,
+          ),
           const SizedBox(height: 16),
           _buildQuickActions(),
           const SizedBox(height: 20),
@@ -87,17 +92,20 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => BillScreen(bill: ride.lastBill!),
-          ),
+          MaterialPageRoute(builder: (_) => BillScreen(bill: ride.lastBill!)),
         );
       });
     }
     if (!ride.isEnded) _billShown = false;
   }
 
-  Widget _buildHeader(String fullName, String employeeCode, int balance,
-      int depositLocked, NumberFormat money) {
+  Widget _buildHeader(
+    String fullName,
+    String employeeCode,
+    int balance,
+    int depositLocked,
+    NumberFormat money,
+  ) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -110,26 +118,31 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Xin chào, $fullName',
+            'Hello, $fullName',
             style: const TextStyle(
-              color:      Colors.white,
-              fontSize:   24,
+              color: Colors.white,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 6),
-          Text('Mã xác nhận: $employeeCode',
-              style: const TextStyle(color: Colors.white70)),
+          Text(
+            'Employee code: $employeeCode',
+            style: const TextStyle(color: Colors.white70),
+          ),
           const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
-                child: _QuickCard(title: 'Số dư',   value: money.format(balance)),
+                child: _QuickCard(
+                  title: 'Balance',
+                  value: money.format(balance),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _QuickCard(
-                  title: 'Tiền cọc',
+                  title: 'Deposit',
                   value: money.format(depositLocked),
                 ),
               ),
@@ -148,18 +161,18 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const WalletTopupScreen()),
             ),
-            icon:  const Icon(Icons.qr_code_2),
-            label: const Text('Nạp tiền'),
+            icon: const Icon(Icons.qr_code_2),
+            label: const Text('Top up'),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: FilledButton.tonalIcon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const QrScanScreen()),
-            ),
-            icon:  const Icon(Icons.qr_code_scanner),
-            label: const Text('Quét QR'),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const QrScanScreen())),
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text('Scan QR'),
           ),
         ),
       ],
@@ -168,19 +181,22 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
 
   Widget _buildWarningCard(MobileRideProvider ride) {
     final String w = ride.warning!;
-    final bool severe =
-        w == kEvtWarnOutOfBalance || w == kErrOutOfParkingZone;
+    final bool severe = w == kEvtWarnOutOfBalance || w == kErrOutOfParkingZone;
     final String title = switch (w) {
-      kEvtWarnLowBalance   => 'Số dư sắp hết',
-      kEvtWarnOutOfBalance => 'Hết tiền — cần trả xe tại bãi',
-      kErrOutOfParkingZone => 'Xe đang ngoài bãi đỗ hợp lệ',
-      _                    => 'Cảnh báo',
+      kEvtWarnLowBalance => 'Balance running low',
+      kEvtWarnOutOfBalance => 'Out of balance — please return the bike',
+      kErrOutOfParkingZone => 'Vehicle is outside a valid parking zone',
+      _ => 'Warning',
     };
     final String body = switch (w) {
-      kEvtWarnLowBalance   => 'Bạn chỉ còn đủ cho block hiện tại. Hãy nạp thêm tiền.',
-      kEvtWarnOutOfBalance => 'Vui lòng đưa xe về bãi trong 15 phút để tránh bị phạt.',
-      kErrOutOfParkingZone => 'Hãy đưa xe đến bãi gần nhất để kết thúc chuyến đi.',
-      _                    => '',
+      kEvtWarnLowBalance =>
+        'You only have enough for the current block. Please top up.',
+      kEvtWarnOutOfBalance =>
+        'Return the bike to a parking zone within 15 minutes to avoid '
+            'a penalty.',
+      kErrOutOfParkingZone =>
+        'Move the bike to the nearest parking zone to end the ride.',
+      _ => '',
     };
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -191,7 +207,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
             severe ? Icons.error : Icons.warning_amber,
             color: severe ? Colors.red : Colors.orange,
           ),
-          title:    Text(title),
+          title: Text(title),
           subtitle: Text(body),
           trailing: IconButton(
             icon: const Icon(Icons.close),
@@ -208,8 +224,8 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
       child: Card(
         color: Colors.red.shade50,
         child: ListTile(
-          leading:  const Icon(Icons.error, color: Colors.red),
-          title:    const Text('Không thể bắt đầu chuyến đi'),
+          leading: const Icon(Icons.error, color: Colors.red),
+          title: const Text('Could not start the ride'),
           subtitle: Text(ErrorMessages.describe(ride.lastError!)),
           trailing: IconButton(
             icon: const Icon(Icons.close),
@@ -225,18 +241,18 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
       return Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color:        Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(18),
         ),
         child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hiện chưa có chuyến đi nào',
+              'No active ride',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             SizedBox(height: 8),
-            Text('Bạn có thể nạp tiền và quét QR trên xe để bắt đầu sử dụng.'),
+            Text('Top up your balance and scan a bike QR code to get going.'),
           ],
         ),
       );
@@ -246,17 +262,18 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
       return Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color:        Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(18),
         ),
         child: const Row(
           children: [
             SizedBox(
-              width: 22, height: 22,
+              width: 22,
+              height: 22,
               child: CircularProgressIndicator(strokeWidth: 2.2),
             ),
             SizedBox(width: 14),
-            Text('Đang mở khóa xe...', style: TextStyle(fontSize: 16)),
+            Text('Unlocking the bike...', style: TextStyle(fontSize: 16)),
           ],
         ),
       );
@@ -265,30 +282,31 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Xe ${ride.currentBikeId ?? ''} — ${ride.isPaused ? 'đang tạm ngưng' : 'đang sử dụng'}',
+            'Bike ${ride.currentBikeId ?? ''} — '
+            '${ride.isPaused ? 'paused' : 'in use'}',
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
           Text(
             _formatSeconds(ride.liveRemainingSeconds),
             style: const TextStyle(
-              fontSize:   40,
+              fontSize: 40,
               fontWeight: FontWeight.w900,
-              color:      kHeaderGradientStart,
+              color: kHeaderGradientStart,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             ride.isPaused
-                ? 'Giá thuê hiện giảm 50% (${ride.effectivePricePerHour}đ/giờ).'
-                : 'Giá thuê: ${ride.pricing.pricePerHour}đ/giờ.',
+                ? 'Paused rate: 50% off (${ride.effectivePricePerHour}đ/hour).'
+                : 'Rate: ${ride.pricing.pricePerHour}đ/hour.',
           ),
           const SizedBox(height: 14),
           Row(
@@ -296,7 +314,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               Expanded(
                 child: FilledButton.tonal(
                   onPressed: ride.isPaused ? ride.resumeRide : ride.pauseRide,
-                  child: Text(ride.isPaused ? 'Tiếp tục' : 'Tạm ngưng'),
+                  child: Text(ride.isPaused ? 'Resume' : 'Pause'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -305,9 +323,11 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
                   onPressed: ride.phase == RentalPhase.stopping
                       ? null
                       : ride.endRide,
-                  child: Text(ride.phase == RentalPhase.stopping
-                      ? 'Đang kết thúc...'
-                      : 'Kết thúc'),
+                  child: Text(
+                    ride.phase == RentalPhase.stopping
+                        ? 'Ending...'
+                        : 'End ride',
+                  ),
                 ),
               ),
             ],
@@ -336,7 +356,7 @@ class _QuickCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color:        Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -347,9 +367,9 @@ class _QuickCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color:      Colors.white,
+              color: Colors.white,
               fontWeight: FontWeight.w800,
-              fontSize:   18,
+              fontSize: 18,
             ),
           ),
         ],

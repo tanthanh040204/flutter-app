@@ -11,28 +11,38 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../config/feature_conf.dart';
 import '../config/mqtt_config.dart';
 import '../models/device_telemetry.dart';
 import '../services/mqtt_service.dart';
 import '../services/telemetry_parser.dart';
 
+/* Constants ---------------------------------------------------------- */
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
 /* Public classes ----------------------------------------------------- */
 class MobileTelemetryProvider extends ChangeNotifier {
   MobileTelemetryProvider(this._mqtt);
 
+  /* --- private fields ------------------------------------------ */
   final MqttService _mqtt;
   final Map<String, DeviceTelemetry> _latest = {};
   final Map<String, StreamSubscription<String>> _subs = {};
 
+  /* --- public methods ------------------------------------------ */
   DeviceTelemetry? telemetryFor(String bikeId) => _latest[bikeId];
 
-  /* Begin storing telemetry for `bikeId`. Idempotent. */
+  /* Begin storing telemetry for `bikeId`. Idempotent — calling twice
+   * with the same id is a no-op. */
   void watch(String bikeId) {
     if (_subs.containsKey(bikeId)) return;
-    final topic = MqttTopics.deviceData(bikeId);
-    debugPrint('[Telemetry] subscribe data topic: $topic');
+    final String topic = MqttTopics.deviceData(bikeId);
+    if (FeatureConfig.debugTelemetryLog) {
+      debugPrint('[Telemetry] subscribe data topic: $topic');
+    }
     _subs[bikeId] = _mqtt.rawStreamOf(topic).listen((raw) {
-      final parsed = TelemetryParser.parse(raw);
+      final DeviceTelemetry? parsed = TelemetryParser.parse(raw);
       if (parsed == null) return;
       _latest[bikeId] = parsed;
       notifyListeners();
@@ -46,7 +56,7 @@ class MobileTelemetryProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    for (final sub in _subs.values) {
+    for (final StreamSubscription<String> sub in _subs.values) {
       sub.cancel();
     }
     _subs.clear();
@@ -54,4 +64,8 @@ class MobileTelemetryProvider extends ChangeNotifier {
   }
 }
 
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
 /* End of file -------------------------------------------------------- */

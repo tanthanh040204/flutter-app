@@ -32,20 +32,16 @@ class BillScreen extends StatelessWidget {
       symbol: kCurrencySymbol,
     );
     final _BillUiState uiState = _stateForStatus(bill.status);
-    final DateFormat dateFmt    = DateFormat('HH:mm dd/MM/yyyy');
+    final DateFormat dateFmt = DateFormat('HH:mm dd/MM/yyyy');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Hóa đơn')),
+      appBar: AppBar(title: const Text('Bill')),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(
-              uiState.icon,
-              color: uiState.iconColor,
-              size: 80,
-            ),
+            Icon(uiState.icon, color: uiState.iconColor, size: 80),
             const SizedBox(height: 12),
             Text(
               uiState.title,
@@ -58,14 +54,17 @@ class BillScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(18),
                 child: Column(
                   children: [
-                    _Row(label: 'Mã người dùng',  value: bill.userId),
-                    _Row(label: 'Kết thúc lúc',   value: dateFmt.format(bill.endedAt)),
-                    _Row(label: 'Trạng thái',     value: _statusText(bill.status)),
+                    _Row(label: 'User ID', value: bill.userId),
+                    _Row(
+                      label: 'Ended at',
+                      value: dateFmt.format(bill.endedAt),
+                    ),
+                    _Row(label: 'Status', value: _statusText(bill.status)),
                     const Divider(),
                     _Row(
-                      label: 'Tổng thanh toán',
+                      label: 'Total amount',
                       value: money.format(bill.amount),
-                      bold:  true,
+                      bold: true,
                     ),
                   ],
                 ),
@@ -92,7 +91,7 @@ class BillScreen extends StatelessWidget {
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text('Đóng'),
+                child: Text('Close'),
               ),
             ),
           ],
@@ -110,8 +109,8 @@ class BillScreen extends StatelessWidget {
     switch (status) {
       case kStatusOk:
         return _BillUiState(
-          title: 'Chuyến đi đã kết thúc',
-          statusLabel: 'Kết thúc thành công',
+          title: 'Ride ended',
+          statusLabel: 'Completed successfully',
           icon: Icons.check_circle,
           iconColor: Colors.green,
           cardColor: Colors.green.shade50,
@@ -119,26 +118,27 @@ class BillScreen extends StatelessWidget {
         );
       case kErrTimeLimitWarning:
         return _BillUiState(
-          title: 'Chuyến đi đã kết thúc (cảnh báo)',
-          statusLabel: 'Kết thúc khi hết thời gian cảnh báo',
+          title: 'Ride ended (warning)',
+          statusLabel: 'Ended within the 15-minute grace window',
           icon: Icons.warning_amber,
           iconColor: Colors.orange,
           cardColor: Colors.orange.shade50,
-          detail: 'Bạn đã về bãi trong thời gian cảnh báo 15 phút.',
+          detail: 'You returned the bike within the 15-minute warning window.',
         );
       case kErrTimeLimitExceeded:
         return _BillUiState(
-          title: 'Chuyến đi đã kết thúc (vi phạm)',
-          statusLabel: 'Vượt thời gian cảnh báo 15 phút',
+          title: 'Ride ended (violation)',
+          statusLabel: 'Exceeded the 15-minute warning window',
           icon: Icons.error,
           iconColor: Colors.red,
           cardColor: Colors.red.shade50,
           detail:
-              'Xe vẫn ngoài bãi sau 15 phút cảnh báo. Hệ thống đã kết thúc chuyến đi và áp dụng xử lý vi phạm.',
+              'The bike was still outside a parking zone after the 15-minute '
+              'warning. The system ended the ride and applied a penalty.',
         );
       default:
         return _BillUiState(
-          title: 'Chuyến đi đã kết thúc',
+          title: 'Ride ended',
           statusLabel: status,
           icon: Icons.info,
           iconColor: Colors.blueGrey,
@@ -153,13 +153,9 @@ class BillScreen extends StatelessWidget {
 class _Row extends StatelessWidget {
   final String label;
   final String value;
-  final bool   bold;
+  final bool bold;
 
-  const _Row({
-    required this.label,
-    required this.value,
-    this.bold = false,
-  });
+  const _Row({required this.label, required this.value, this.bold = false});
 
   @override
   Widget build(BuildContext context) {

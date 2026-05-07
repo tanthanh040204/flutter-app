@@ -8,6 +8,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../config/feature_conf.dart';
 import '../config/mqtt_config.dart';
 import '../models/error_codes.dart';
 import '../models/mobile_user_profile.dart';
@@ -16,11 +17,13 @@ import '../services/protocol_codec.dart';
 import '../services/user_wire_id.dart';
 
 /* Constants ---------------------------------------------------------- */
+const Duration kTopupResponseTimeout = Duration(
+  seconds: FeatureConfig.topupResponseTimeoutSeconds,
+);
+
 /* Enums -------------------------------------------------------------- */
 
 enum TopupPhase { idle, requesting, success, error }
-
-const Duration kTopupResponseTimeout = Duration(seconds: 20);
 
 /* Typedef / Function types ------------------------------------------ */
 /* Public classes ----------------------------------------------------- */
@@ -29,16 +32,16 @@ class MobileWalletProvider extends ChangeNotifier {
   MobileWalletProvider(this._mqtt);
 
   /* --- private fields ------------------------------------------ */
-  final MqttService                       _mqtt;
-  StreamSubscription<ProtocolMessage>?    _responseSub;
-  Timer?                                  _requestTimeout;
-  String?                                 _uid;
-  String?                                 _wireUserId;
+  final MqttService _mqtt;
+  StreamSubscription<ProtocolMessage>? _responseSub;
+  Timer? _requestTimeout;
+  String? _uid;
+  String? _wireUserId;
 
   /* --- public fields ------------------------------------------- */
-  TopupPhase phase         = TopupPhase.idle;
-  int?       latestBalance;
-  String?    lastError;
+  TopupPhase phase = TopupPhase.idle;
+  int? latestBalance;
+  String? lastError;
 
   /* --- public methods ------------------------------------------ */
   void bindUser(MobileUserProfile? user) {
@@ -53,9 +56,9 @@ class MobileWalletProvider extends ChangeNotifier {
     _requestTimeout?.cancel();
     _requestTimeout = null;
     _responseSub = null;
-    phase         = TopupPhase.idle;
+    phase = TopupPhase.idle;
     latestBalance = null;
-    lastError     = null;
+    lastError = null;
     if (wireUserId != null) {
       _responseSub = _mqtt
           .streamOf(MqttTopics.userResponse(wireUserId))
@@ -67,17 +70,17 @@ class MobileWalletProvider extends ChangeNotifier {
   bool requestAddToken({required int amount}) {
     if (_uid == null || _wireUserId == null) {
       lastError = kErrAccountInvalid;
-      phase     = TopupPhase.error;
+      phase = TopupPhase.error;
       notifyListeners();
       return false;
     }
     if (amount <= 0) {
       lastError = kErrTopupAmountInvalid;
-      phase     = TopupPhase.error;
+      phase = TopupPhase.error;
       notifyListeners();
       return false;
     }
-    phase     = TopupPhase.requesting;
+    phase = TopupPhase.requesting;
     lastError = null;
     notifyListeners();
     _requestTimeout?.cancel();
@@ -85,10 +88,12 @@ class MobileWalletProvider extends ChangeNotifier {
       if (phase != TopupPhase.requesting) return;
       phase = TopupPhase.error;
       lastError = kErrTopupFailed;
-      debugPrint(
-        '[Wallet] topup timeout after ${kTopupResponseTimeout.inSeconds}s '
-        'without RESP_ADD_TOKEN_*',
-      );
+      if (FeatureConfig.debugWalletLog) {
+        debugPrint(
+          '[Wallet] topup timeout after ${kTopupResponseTimeout.inSeconds}s '
+          'without RESP_ADD_TOKEN_*',
+        );
+      }
       notifyListeners();
     });
 
@@ -99,7 +104,7 @@ class MobileWalletProvider extends ChangeNotifier {
     if (!ok) {
       _requestTimeout?.cancel();
       _requestTimeout = null;
-      phase     = TopupPhase.error;
+      phase = TopupPhase.error;
       lastError = kErrTopupFailed;
       notifyListeners();
     }
@@ -109,7 +114,7 @@ class MobileWalletProvider extends ChangeNotifier {
   void resetStatus() {
     _requestTimeout?.cancel();
     _requestTimeout = null;
-    phase     = TopupPhase.idle;
+    phase = TopupPhase.idle;
     lastError = null;
     notifyListeners();
   }
@@ -128,12 +133,12 @@ class MobileWalletProvider extends ChangeNotifier {
     switch (msg.command) {
       case kEvtRespAddTokenSuccess:
         latestBalance = int.tryParse(msg.argAt(0) ?? '');
-        phase         = TopupPhase.success;
+        phase = TopupPhase.success;
         notifyListeners();
         break;
       case kEvtRespAddTokenError:
         lastError = msg.argAt(0) ?? kErrUnknown;
-        phase     = TopupPhase.error;
+        phase = TopupPhase.error;
         notifyListeners();
         break;
     }

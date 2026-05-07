@@ -25,11 +25,11 @@ class MobileRideTab extends StatelessWidget {
     final MobileRideProvider ride = context.watch<MobileRideProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Thông số')),
+      appBar: AppBar(title: const Text('Ride')),
       body: !ride.hasActiveSession
           ? const Center(
               child: Text(
-                'Bạn chưa sử dụng xe',
+                'No active ride',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
               ),
             )
@@ -49,21 +49,25 @@ class MobileRideTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Xe ${ride.currentBikeId ?? ''}',
-                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+                  'Bike ${ride.currentBikeId ?? ''}',
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 _InfoRow(
-                  label: 'Trạng thái',
-                  value: ride.isPaused ? 'Đang tạm ngưng' : 'Đang sử dụng',
+                  label: 'Status',
+                  value: ride.isPaused ? 'Paused' : 'In use',
                 ),
                 _InfoRow(
-                  label: 'Giá hiện tại',
-                  value: '${ride.effectivePricePerHour}đ/giờ'
-                      '${ride.isPaused ? ' (giảm 50%)' : ''}',
+                  label: 'Current rate',
+                  value:
+                      '${ride.effectivePricePerHour}đ/hour'
+                      '${ride.isPaused ? ' (50% off)' : ''}',
                 ),
                 _InfoRow(
-                  label: 'Thời gian đã dùng',
+                  label: 'Time elapsed',
                   value: _formatSeconds(ride.liveRemainingSeconds),
                 ),
               ],
@@ -75,9 +79,7 @@ class MobileRideTab extends StatelessWidget {
           onPressed: ride.isPaused ? ride.resumeRide : ride.pauseRide,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Text(
-              ride.isPaused ? 'Tiếp tục sử dụng' : 'Tạm ngưng sử dụng',
-            ),
+            child: Text(ride.isPaused ? 'Resume ride' : 'Pause ride'),
           ),
         ),
         const SizedBox(height: 12),
@@ -86,9 +88,7 @@ class MobileRideTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Text(
-              ride.phase == RentalPhase.stopping
-                  ? 'Đang kết thúc...'
-                  : 'Ngưng sử dụng',
+              ride.phase == RentalPhase.stopping ? 'Ending...' : 'End ride',
             ),
           ),
         ),
@@ -97,9 +97,8 @@ class MobileRideTab extends StatelessWidget {
   }
 
   Widget _buildWarning(MobileRideProvider ride) {
-    final String w       = ride.warning!;
-    final bool   severe  =
-        w == kEvtWarnOutOfBalance || w == kErrOutOfParkingZone;
+    final String w = ride.warning!;
+    final bool severe = w == kEvtWarnOutOfBalance || w == kErrOutOfParkingZone;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Card(
@@ -109,7 +108,7 @@ class MobileRideTab extends StatelessWidget {
             severe ? Icons.error : Icons.warning_amber,
             color: severe ? Colors.red : Colors.orange,
           ),
-          title:    Text(_titleFor(w)),
+          title: Text(_titleFor(w)),
           subtitle: Text(_bodyFor(w)),
           trailing: IconButton(
             icon: const Icon(Icons.close),
@@ -122,21 +121,26 @@ class MobileRideTab extends StatelessWidget {
 
   String _titleFor(String code) {
     switch (code) {
-      case kEvtWarnLowBalance:   return 'Số dư sắp hết';
-      case kEvtWarnOutOfBalance: return 'Hết tiền — cần trả xe';
-      case kErrOutOfParkingZone: return 'Xe ngoài bãi đỗ';
-      default:                   return 'Cảnh báo';
+      case kEvtWarnLowBalance:
+        return 'Balance running low';
+      case kEvtWarnOutOfBalance:
+        return 'Out of balance — return the bike';
+      case kErrOutOfParkingZone:
+        return 'Outside a valid parking zone';
+      default:
+        return 'Warning';
     }
   }
 
   String _bodyFor(String code) {
     switch (code) {
       case kEvtWarnLowBalance:
-        return 'Bạn chỉ còn đủ cho block hiện tại. Hãy nạp thêm tiền.';
+        return 'You only have enough for the current block. Please top up.';
       case kEvtWarnOutOfBalance:
-        return 'Vui lòng đưa xe về bãi trong 15 phút để tránh bị phạt.';
+        return 'Return the bike to a parking zone within 15 minutes to '
+            'avoid a penalty.';
       case kErrOutOfParkingZone:
-        return 'Hãy đưa xe đến bãi gần nhất để kết thúc chuyến đi.';
+        return 'Move the bike to the nearest parking zone to end the ride.';
       default:
         return '';
     }

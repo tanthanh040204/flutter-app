@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config/feature_conf.dart';
 import '../providers/mobile_auth_provider.dart';
 import '../services/mqtt_service.dart';
 import '../services/user_wire_id.dart';
@@ -77,7 +78,9 @@ class _MobileBootstrapState extends State<MobileBootstrap> {
     final MqttService service = context.read<MqttService>();
 
     if (uid == null && _connectedUid != null) {
-      debugPrint('[MQTT][Bootstrap] logout detected, disconnect MQTT');
+      if (FeatureConfig.debugMqttLog) {
+        debugPrint('[MQTT][Bootstrap] logout detected, disconnect MQTT');
+      }
       _connectedUid = null;
       service.disconnect();
       return;
@@ -89,14 +92,20 @@ class _MobileBootstrapState extends State<MobileBootstrap> {
         phone: user?.phone,
         email: user?.email,
       );
-      debugPrint(
-        '[MQTT][Bootstrap] login detected, start connect: uid=$uid clientId=$clientId',
-      );
+      if (FeatureConfig.debugMqttLog) {
+        debugPrint(
+          '[MQTT][Bootstrap] login detected, start connect: '
+          'uid=$uid clientId=$clientId',
+        );
+      }
       _connectedUid = uid;
       service.connect(clientId: clientId).then((bool ok) {
-        debugPrint(
-          '[MQTT][Bootstrap] connect done: uid=$uid clientId=$clientId ok=$ok state=${service.state}',
-        );
+        if (FeatureConfig.debugMqttLog) {
+          debugPrint(
+            '[MQTT][Bootstrap] connect done: '
+            'uid=$uid clientId=$clientId ok=$ok state=${service.state}',
+          );
+        }
       });
     }
   }

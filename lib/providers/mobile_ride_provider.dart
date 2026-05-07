@@ -9,6 +9,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../config/feature_conf.dart';
 import '../config/mqtt_config.dart';
 import '../models/error_codes.dart';
 import '../models/mobile_user_profile.dart';
@@ -20,23 +21,20 @@ import '../services/user_wire_id.dart';
 import 'mobile_telemetry_provider.dart';
 
 /* Constants ---------------------------------------------------------- */
-const int kDefaultPricePerHour           = 10000;
-const int kDefaultDepositAmount          = 10000;
+const int kDefaultPricePerHour = 10000;
+const int kDefaultDepositAmount = 10000;
 const int kDefaultMinimumRequiredBalance = 20000;
-const int kDefaultLowBatteryThreshold    = 20;
-const int kRemainingSecondsMax           = 999999;
-const int kPausePriceFactorPercent       = 50;
-const int kPauseTimeoutSeconds           = 3600;
+const int kDefaultLowBatteryThreshold = 20;
 
 /* Enums -------------------------------------------------------------- */
 
 enum RentalPhase {
-  idle,        /* no active rental                                   */
-  starting,    /* START_RENTAL sent, waiting for SUCCESS or ERR      */
-  running,     /* session is active                                  */
-  paused,      /* session is paused                                  */
-  stopping,    /* STOP_RENTAL sent, waiting for END or FAIL          */
-  ended,       /* received END_RENTAL — bill is available            */
+  idle,
+  starting,
+  running,
+  paused,
+  stopping,
+  ended,
 }
 
 /* Typedef / Function types ------------------------------------------ */
@@ -44,43 +42,44 @@ enum RentalPhase {
 
 class MobileRideProvider extends ChangeNotifier {
   MobileRideProvider(this._mqtt, {MobileTelemetryProvider? telemetry})
-      : _telemetry = telemetry;
+    : _telemetry = telemetry;
 
   /* --- private fields ------------------------------------------ */
-  final MqttService               _mqtt;
-  final MobileTelemetryProvider?  _telemetry;
+  final MqttService _mqtt;
+  final MobileTelemetryProvider? _telemetry;
   StreamSubscription<ProtocolMessage>? _webAppSub;
-  Timer?                          _timer;
-  Timer?                          _pauseTimeoutTimer;
-  String?                         _uid;
-  String?                         _wireUserId;
-  String?                         _bikeId;
-  DateTime?                       _startedAt;
-  int                             _liveRemainingSeconds = 0;
+  Timer? _timer;
+  Timer? _pauseTimeoutTimer;
+  String? _uid;
+  String? _wireUserId;
+  String? _bikeId;
+  DateTime? _startedAt;
+  int _liveRemainingSeconds = 0;
 
   /* --- public fields ------------------------------------------- */
   RentalPhase phase = RentalPhase.idle;
   RentalBill? lastBill;
-  String?     lastError;
-  String?     warning;  /* WARN_LOW_BALANCE / WARN_OUT_OF_BALANCE  */
+  String? lastError;
+  String? warning; /* WARN_LOW_BALANCE / WARN_OUT_OF_BALANCE  */
   PricingConfig pricing = const PricingConfig(
-    pricePerHour:           kDefaultPricePerHour,
-    depositAmount:          kDefaultDepositAmount,
+    pricePerHour: kDefaultPricePerHour,
+    depositAmount: kDefaultDepositAmount,
     minimumRequiredBalance: kDefaultMinimumRequiredBalance,
-    lowBatteryThreshold:    kDefaultLowBatteryThreshold,
+    lowBatteryThreshold: kDefaultLowBatteryThreshold,
   );
 
   /* --- public getters ------------------------------------------ */
-  int     get liveRemainingSeconds => _liveRemainingSeconds;
-  String? get currentBikeId        => _bikeId;
-  bool    get isRunning            => phase == RentalPhase.running;
-  bool    get isPaused             => phase == RentalPhase.paused;
-  bool    get isEnded              => phase == RentalPhase.ended;
-  bool    get hasActiveSession     =>
+  int get liveRemainingSeconds => _liveRemainingSeconds;
+  String? get currentBikeId => _bikeId;
+  bool get isRunning => phase == RentalPhase.running;
+  bool get isPaused => phase == RentalPhase.paused;
+  bool get isEnded => phase == RentalPhase.ended;
+  bool get hasActiveSession =>
       phase == RentalPhase.running || phase == RentalPhase.paused;
-  int     get effectivePricePerHour =>
-      isPaused ? (pricing.pricePerHour * kPausePriceFactorPercent) ~/ 100
-               : pricing.pricePerHour;
+  int get effectivePricePerHour => isPaused
+      ? (pricing.pricePerHour * FeatureConfig.rentalPausePriceFactorPercent) ~/
+            100
+      : pricing.pricePerHour;
 
   /* --- public methods ------------------------------------------ */
   void bindUser(MobileUserProfile? user) {
@@ -97,22 +96,26 @@ class MobileRideProvider extends ChangeNotifier {
 
   Future<bool> startRental({required String bikeId}) async {
     if (_uid == null || _wireUserId == null) {
-      lastError = 'Chưa đăng nhập.';
-      debugPrint('[Ride] startRental blocked: user not logged in');
+      lastError = 'Not signed in.';
+      if (FeatureConfig.debugRideLog) {
+        debugPrint('[Ride] startRental blocked: user not logged in');
+      }
       notifyListeners();
       return false;
     }
     final String wireUserId = _wireUserId!;
-    debugPrint(
-      '[Ride] startRental requested: uid=$_uid wireUserId=$wireUserId bikeId=$bikeId',
-    );
+    if (FeatureConfig.debugRideLog) {
+      debugPrint(
+        '[Ride] startRental requested: uid=$_uid wireUserId=$wireUserId bikeId=$bikeId',
+      );
+    }
     _bikeId = bikeId;
     _subscribeWebApp(bikeId);
     _telemetry?.watch(bikeId);
 
-    phase     = RentalPhase.starting;
+    phase = RentalPhase.starting;
     lastError = null;
-    lastBill  = null;
+    lastBill = null;
     notifyListeners();
 
     final bool ok = _mqtt.publish(
@@ -120,13 +123,15 @@ class MobileRideProvider extends ChangeNotifier {
       ProtocolCodec.build(kCmdStartRental, [wireUserId]),
     );
     if (!ok) {
-      debugPrint(
-        '[Ride] startRental publish failed: uid=$_uid bikeId=$bikeId mqttConnected=${_mqtt.isConnected}',
-      );
-      phase     = RentalPhase.idle;
-      lastError = 'Không gửi được lệnh MQTT. Kiểm tra kết nối.';
+      if (FeatureConfig.debugRideLog) {
+        debugPrint(
+          '[Ride] startRental publish failed: uid=$_uid bikeId=$bikeId mqttConnected=${_mqtt.isConnected}',
+        );
+      }
+      phase = RentalPhase.idle;
+      lastError = 'Could not publish MQTT command. Check the connection.';
       notifyListeners();
-    } else {
+    } else if (FeatureConfig.debugRideLog) {
       debugPrint('[Ride] startRental published: uid=$_uid bikeId=$bikeId');
     }
     return ok;
@@ -134,7 +139,7 @@ class MobileRideProvider extends ChangeNotifier {
 
   Future<void> pauseRide() async {
     if (_bikeId == null || _uid == null || _wireUserId == null) return;
-    if (phase   != RentalPhase.running)        return;
+    if (phase != RentalPhase.running) return;
     _mqtt.publish(
       MqttTopics.appToWeb(_bikeId!),
       ProtocolCodec.build(kCmdPause, [_wireUserId!]),
@@ -143,7 +148,7 @@ class MobileRideProvider extends ChangeNotifier {
 
   Future<void> resumeRide() async {
     if (_bikeId == null || _uid == null || _wireUserId == null) return;
-    if (phase   != RentalPhase.paused)         return;
+    if (phase != RentalPhase.paused) return;
     _mqtt.publish(
       MqttTopics.appToWeb(_bikeId!),
       ProtocolCodec.build(kCmdResume, [_wireUserId!]),
@@ -152,7 +157,7 @@ class MobileRideProvider extends ChangeNotifier {
 
   Future<void> endRide() async {
     if (_bikeId == null || _uid == null || _wireUserId == null) return;
-    if (!hasActiveSession)                      return;
+    if (!hasActiveSession) return;
     phase = RentalPhase.stopping;
     notifyListeners();
     _mqtt.publish(
@@ -161,9 +166,21 @@ class MobileRideProvider extends ChangeNotifier {
     );
   }
 
-  void clearWarning()    { warning   = null; notifyListeners(); }
-  void clearError()      { lastError = null; notifyListeners(); }
-  void acknowledgeBill() { lastBill  = null; phase = RentalPhase.idle; notifyListeners(); }
+  void clearWarning() {
+    warning = null;
+    notifyListeners();
+  }
+
+  void clearError() {
+    lastError = null;
+    notifyListeners();
+  }
+
+  void acknowledgeBill() {
+    lastBill = null;
+    phase = RentalPhase.idle;
+    notifyListeners();
+  }
 
   @override
   void dispose() {
@@ -183,25 +200,33 @@ class MobileRideProvider extends ChangeNotifier {
     if (prevBike != null) {
       _telemetry?.stopWatching(prevBike);
     }
-    _bikeId                = null;
-    _startedAt             = null;
-    _liveRemainingSeconds  = 0;
-    phase                  = RentalPhase.idle;
-    lastBill               = null;
-    lastError              = null;
-    warning                = null;
+    _bikeId = null;
+    _startedAt = null;
+    _liveRemainingSeconds = 0;
+    phase = RentalPhase.idle;
+    lastBill = null;
+    lastError = null;
+    warning = null;
   }
 
   void _subscribeWebApp(String bikeId) {
     _webAppSub?.cancel();
-    debugPrint('[Ride] subscribe web->app topic: ${MqttTopics.webToApp(bikeId)}');
+    if (FeatureConfig.debugRideLog) {
+      debugPrint(
+        '[Ride] subscribe web->app topic: ${MqttTopics.webToApp(bikeId)}',
+      );
+    }
     _webAppSub = _mqtt
         .streamOf(MqttTopics.webToApp(bikeId))
         .listen(_handleWebAppMessage);
   }
 
   void _handleWebAppMessage(ProtocolMessage msg) {
-    debugPrint('[Ride] incoming web->app command=${msg.command} args=${msg.args}');
+    if (FeatureConfig.debugRideLog) {
+      debugPrint(
+        '[Ride] incoming web->app command=${msg.command} args=${msg.args}',
+      );
+    }
     switch (msg.command) {
       case kEvtStartRentalSuccess:
         _onStartSuccess(msg);
@@ -235,10 +260,9 @@ class MobileRideProvider extends ChangeNotifier {
   void _onStartSuccess(ProtocolMessage msg) {
     /* START_RENTAL_SUCCESS=<user_id>,<start_time> */
     final String? startTimeStr = msg.argAt(1);
-    _startedAt =
-        startTimeStr != null ? DateTime.tryParse(startTimeStr) : null;
+    _startedAt = startTimeStr != null ? DateTime.tryParse(startTimeStr) : null;
     _startedAt ??= DateTime.now();
-    phase       = RentalPhase.running;
+    phase = RentalPhase.running;
     _liveRemainingSeconds = 0;
     _restartTicker();
     notifyListeners();
@@ -260,21 +284,22 @@ class MobileRideProvider extends ChangeNotifier {
   }
 
   void _onStopFail() {
-    /* Xe ngoài bãi — vẫn đang thuê. Hiển thị hướng dẫn. */
+    /* Vehicle is outside a valid parking zone — the ride continues.
+     * Show guidance instead of dropping the active session. */
     warning = kErrOutOfParkingZone;
-    phase   = hasActiveSession ? phase : RentalPhase.running;
+    phase = hasActiveSession ? phase : RentalPhase.running;
     if (phase == RentalPhase.stopping) phase = RentalPhase.running;
     notifyListeners();
   }
 
   void _onEndRental(ProtocolMessage msg) {
     /* END_RENTAL=<user_id>,<bill_amount>,<status> */
-    final int    amount = int.tryParse(msg.argAt(1) ?? '') ?? 0;
+    final int amount = int.tryParse(msg.argAt(1) ?? '') ?? 0;
     final String status = _normalizeEndStatus(msg.argAt(2));
     lastBill = RentalBill(
-      userId:  msg.argAt(0) ?? _uid ?? '',
-      amount:  amount,
-      status:  status,
+      userId: msg.argAt(0) ?? _uid ?? '',
+      amount: amount,
+      status: status,
       endedAt: DateTime.now(),
     );
     phase = RentalPhase.ended;
@@ -285,7 +310,7 @@ class MobileRideProvider extends ChangeNotifier {
 
   void _onRentalErr(ProtocolMessage msg) {
     lastError = msg.argAt(0) ?? kErrUnknown;
-    phase     = RentalPhase.idle;
+    phase = RentalPhase.idle;
     notifyListeners();
   }
 
@@ -300,14 +325,17 @@ class MobileRideProvider extends ChangeNotifier {
     final DateTime? started = _startedAt;
     if (started == null) return;
     final int elapsed = DateTime.now().difference(started).inSeconds;
-    _liveRemainingSeconds = elapsed.clamp(0, kRemainingSecondsMax);
+    _liveRemainingSeconds = elapsed.clamp(
+      0,
+      FeatureConfig.rentalRemainingSecondsMax,
+    );
     notifyListeners();
   }
 
   void _startPauseTimeout() {
     _pauseTimeoutTimer?.cancel();
     _pauseTimeoutTimer = Timer(
-      const Duration(seconds: kPauseTimeoutSeconds),
+      const Duration(seconds: FeatureConfig.rentalPauseTimeoutSeconds),
       () {
         /* Local safety net — backend will send END_RENTAL. */
         if (phase == RentalPhase.paused) {
@@ -326,7 +354,6 @@ class MobileRideProvider extends ChangeNotifier {
     }
     return normalized;
   }
-
 }
 
 /* Private classes ---------------------------------------------------- */

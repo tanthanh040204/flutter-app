@@ -28,13 +28,13 @@ class MobileHistoryRoute {
 
   String get buttonLabel {
     final String start =
-        '${_two(startAt.hour)}h${_two(startAt.minute)}'
-        '-${_two(startAt.day)}/${_two(startAt.month)}';
-    if (endAt == null) return 'Lộ trình $start';
+        '${_two(startAt.hour)}:${_two(startAt.minute)}'
+        ' ${_two(startAt.day)}/${_two(startAt.month)}';
+    if (endAt == null) return 'Route $start';
     final String end =
-        '${_two(endAt!.hour)}h${_two(endAt!.minute)}'
-        '-${_two(endAt!.day)}/${_two(endAt!.month)}';
-    return 'Lộ trình $start đến $end';
+        '${_two(endAt!.hour)}:${_two(endAt!.minute)}'
+        ' ${_two(endAt!.day)}/${_two(endAt!.month)}';
+    return 'Route $start to $end';
   }
 
   String _two(int n) => n.toString().padLeft(2, '0');

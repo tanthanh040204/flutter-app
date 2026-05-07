@@ -3,6 +3,11 @@
  * @brief      Snapshot of MCU telemetry parsed from the bike_id/data topic.
  */
 
+/* Imports ------------------------------------------------------------ */
+/* Constants ---------------------------------------------------------- */
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
 /* Public classes ----------------------------------------------------- */
 class DeviceTelemetry {
   final double? lat;
@@ -13,7 +18,8 @@ class DeviceTelemetry {
   final double? velocityMs;
   final double? velocityKmh;
   final double? distanceM;
-  final double? totalKm; // not used by app yet — stored for future use
+  /* Not yet surfaced in the UI — stored for future features. */
+  final double? totalKm;
   final double? directionDeg;
   final String? directionStr;
   final double? dust;
@@ -37,4 +43,8 @@ class DeviceTelemetry {
   });
 }
 
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
 /* End of file -------------------------------------------------------- */

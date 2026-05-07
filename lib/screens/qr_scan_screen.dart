@@ -34,7 +34,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Quét QR mở khóa xe')),
+      appBar: AppBar(title: const Text('Scan QR to unlock')),
       body: MobileScanner(
         onDetect: (capture) async {
           if (handled) return;
@@ -42,9 +42,11 @@ class _QrScanScreenState extends State<QrScanScreen> {
           if (code == null) return;
           handled = true;
           final String vehicleId = _extractVehicleId(code);
+          final NavigatorState navigator = Navigator.of(context);
           if (!mounted) return;
           await _showConfirm(context, vehicleId);
-          if (mounted) Navigator.pop(context);
+          if (!mounted) return;
+          navigator.pop();
         },
       ),
     );
@@ -69,25 +71,25 @@ class _QrScanScreenState extends State<QrScanScreen> {
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Bạn muốn sử dụng xe $vehicleId?'),
+        title: Text('Rent bike $vehicleId?'),
         content: Text(
           enoughBalance
-              ? 'Tài khoản đủ điều kiện. Phí khởi tạo: '
-                '${ride.pricing.pricePerHour}đ / giờ + '
-                '${ride.pricing.depositAmount}đ tiền cọc.'
-              : 'Số dư hiện tại chưa đủ '
-                '${ride.pricing.minimumRequiredBalance}đ để sử dụng xe.',
+              ? 'Your account meets the requirements. Start-up fee: '
+                    '${ride.pricing.pricePerHour}đ / hour + '
+                    '${ride.pricing.depositAmount}đ deposit.'
+              : 'Current balance is below the minimum '
+                    '${ride.pricing.minimumRequiredBalance}đ required to start.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: enoughBalance
                 ? () => Navigator.pop(context, true)
                 : null,
-            child: const Text('Có'),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -101,9 +103,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
     if (!published) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(ErrorMessages.describe(
-            ride.lastError ?? kErrUnknown,
-          )),
+          content: Text(ErrorMessages.describe(ride.lastError ?? kErrUnknown)),
         ),
       );
     }

@@ -13,11 +13,7 @@ const int kWireUserModulo = 10000000000;
 /* Typedef / Function types ------------------------------------------ */
 /* Public classes ----------------------------------------------------- */
 
-String buildWireUserId({
-  required String uid,
-  String? phone,
-  String? email,
-}) {
+String buildWireUserId({required String uid, String? phone, String? email}) {
   if (uid.startsWith('user_')) {
     final String suffix = uid.substring(5);
     if (_isTenDigits(suffix)) return uid;

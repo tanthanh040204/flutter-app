@@ -1,8 +1,15 @@
 /*
  * @file       telemetry_parser.dart
- * @brief      Parses the MCU /data MQTT payload (quasi-JSON) into
+ * @brief      Parses the MCU /data MQTT payload (standard JSON) into
  *             DeviceTelemetry. Mirrors the parser used by flutter-web so the
  *             app understands the same wire format.
+ *
+ *             Expected payload (firmware v2):
+ *               {"time":"2026/05/07-22:38:21","battery":46.6,
+ *                "velocity_ms":0.0,"velocity_kmh":0.0,"distance_m":0.0,
+ *                "totalKm":0.0,"direction_deg":233.0,"direction_str":"SW",
+ *                "position":[10.853079,106.782715],
+ *                "dust":0.7,"temp":33.1,"hum":67.8}
  */
 
 /* Imports ------------------------------------------------------------ */
@@ -11,155 +18,89 @@ import 'dart:developer' as dev;
 
 import '../models/device_telemetry.dart';
 
+/* Constants ---------------------------------------------------------- */
+const int kRawPreviewLength = 120;
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
 /* Public classes ----------------------------------------------------- */
 class TelemetryParser {
   const TelemetryParser._();
 
+  /* --- public methods ------------------------------------------ */
   static DeviceTelemetry? parse(String raw) {
     if (raw.isEmpty) return null;
     try {
-      final fixed = _preProcess(raw.trim());
-      final dynamic decoded = jsonDecode(fixed);
+      final dynamic decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) return null;
       return _normalize(decoded);
     } catch (e) {
-      final preview = raw.length > 120 ? raw.substring(0, 120) : raw;
+      final String preview = raw.length > kRawPreviewLength
+          ? raw.substring(0, kRawPreviewLength)
+          : raw;
       dev.log(
-        '[TelemetryParser] parse failed: $e\n  raw(120): $preview',
+        '[TelemetryParser] parse failed: $e\n  raw($kRawPreviewLength): $preview',
         name: 'TelemetryParser',
       );
       return null;
     }
   }
 
-  /* --- private --------------------------------------------------- */
-  // Same pre-processing as flutter-web: tolerate the older non-strict JSON
-  // shapes ("time":[...], position:(...), unquoted direction, NaN tokens).
-  static String _preProcess(String s) {
-    if (!s.startsWith('{') && !s.endsWith('}')) {
-      s = '{$s}';
-    } else if (!s.startsWith('{')) {
-      s = '{$s';
-    } else if (!s.endsWith('}')) {
-      s = '$s}';
-    }
-
-    s = s.replaceAllMapped(
-      RegExp(r'"time"\s*:\s*\[([^\]]*)\]'),
-      (m) => '"time":"${m.group(1)}"',
-    );
-    s = s.replaceAllMapped(
-      RegExp(r'"direction"\s*:\s*([\d.]+)\s+([A-Z?]+)(?=[,}])'),
-      (m) => '"direction":"${m.group(1)} ${m.group(2)}"',
-    );
-    s = s.replaceAllMapped(
-      RegExp(r'"position"\s*:\s*\(([^)]+)\)'),
-      (m) => '"position":"(${m.group(1)})"',
-    );
-    s = s.replaceAll(RegExp(r':\s*[+-]?nan\b', caseSensitive: false), ':null');
-
-    return s;
-  }
-
+  /* --- private methods ----------------------------------------- */
   static DeviceTelemetry _normalize(Map<String, dynamic> json) {
-    double? toD(dynamic v) {
-      if (v == null) return null;
-      if (v is num) return v.toDouble();
-      return double.tryParse(v.toString());
-    }
-
-    double? lat, lng;
-    final rawPos = json['position'];
-    if (rawPos is List) {
-      final pos = _parsePositionArray(rawPos);
-      lat = pos?.$1;
-      lng = pos?.$2;
-    } else if (rawPos != null) {
-      final pos = _parsePositionString(rawPos.toString());
-      lat = pos?.$1;
-      lng = pos?.$2;
-    }
-
-    DateTime ts = DateTime.now();
-    final rawTime = json['time'];
-    if (rawTime != null) {
-      ts = _parseTime(rawTime.toString()) ?? DateTime.now();
-    }
-
-    double? directionDeg;
-    String? directionStr;
-    final rawDir = json['direction'];
-    if (rawDir != null) {
-      final dir = _parseDirection(rawDir.toString());
-      directionDeg = dir?.$1;
-      directionStr = dir?.$2;
-    }
+    final (double?, double?) pos = _parsePosition(json['position']);
+    final DateTime ts = _parseTime(json['time']?.toString()) ?? DateTime.now();
 
     return DeviceTelemetry(
-      lat: lat,
-      lng: lng,
+      lat: pos.$1,
+      lng: pos.$2,
       timestamp: ts,
-      battery: toD(json['battery']),
-      velocityMs: toD(json['velocity_ms']),
-      velocityKmh: toD(json['velocity_kmh']),
-      distanceM: toD(json['distance_m']),
-      totalKm: toD(json['totalKm']) ?? toD(json['total_km']),
-      directionDeg: directionDeg,
-      directionStr: directionStr,
-      dust: toD(json['dust']),
-      temp: toD(json['temp']),
-      hum: toD(json['hum']),
+      battery: _toD(json['battery']),
+      velocityMs: _toD(json['velocity_ms']),
+      velocityKmh: _toD(json['velocity_kmh']),
+      distanceM: _toD(json['distance_m']),
+      totalKm: _toD(json['totalKm']),
+      directionDeg: _toD(json['direction_deg']),
+      directionStr: json['direction_str']?.toString(),
+      dust: _toD(json['dust']),
+      temp: _toD(json['temp']),
+      hum: _toD(json['hum']),
     );
   }
 
-  static (double, double)? _parsePositionArray(List<dynamic> arr) {
-    if (arr.length < 2) return null;
-    final lat = double.tryParse(arr[0].toString());
-    final lng = double.tryParse(arr[1].toString());
-    if (lat == null || lng == null || lat.isNaN || lng.isNaN) return null;
-    if (lat == 0 && lng == 0) return null;
+  static double? _toD(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+
+  // Parse [lat, lng] array → (lat, lng). Drops (0,0) sentinel "no GPS fix".
+  static (double?, double?) _parsePosition(dynamic raw) {
+    if (raw is! List || raw.length < 2) return (null, null);
+    final double? lat = _toD(raw[0]);
+    final double? lng = _toD(raw[1]);
+    if (lat == null || lng == null) return (null, null);
+    if (lat.isNaN || lng.isNaN) return (null, null);
+    if (lat == 0 && lng == 0) return (null, null);
     return (lat, lng);
   }
 
-  static (double, double)? _parsePositionString(String str) {
-    final m = RegExp(r'\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)').firstMatch(str);
-    if (m == null) return null;
-    final lat = double.tryParse(m.group(1)!);
-    final lng = double.tryParse(m.group(2)!);
-    if (lat == null || lng == null || lat.isNaN || lng.isNaN) return null;
-    if (lat == 0 && lng == 0) return null;
-    return (lat, lng);
-  }
-
-  static (double, String)? _parseDirection(String str) {
-    final m = RegExp(r'^([\d.]+)\s*([A-Z?]*)$').firstMatch(str.trim());
-    if (m == null) return null;
-    final deg = double.tryParse(m.group(1)!);
-    if (deg == null) return null;
-    return (deg, m.group(2) ?? '');
-  }
-
-  static DateTime? _parseTime(String str) {
+  // Parse "YYYY/M/D-HH:MM:SS" → DateTime | null.
+  static DateTime? _parseTime(String? str) {
+    if (str == null || str.isEmpty) return null;
     final m = RegExp(r'(\d+)/(\d+)/(\d+)-(\d+):(\d+):(\d+)').firstMatch(str);
     if (m == null) return null;
-    final a = int.parse(m.group(1)!);
-    final b = int.parse(m.group(2)!);
-    final c = int.parse(m.group(3)!);
-    final h = int.parse(m.group(4)!);
-    final mi = int.parse(m.group(5)!);
-    final s = int.parse(m.group(6)!);
+    final int y = int.parse(m.group(1)!);
+    final int mo = int.parse(m.group(2)!);
+    final int d = int.parse(m.group(3)!);
+    final int h = int.parse(m.group(4)!);
+    final int mi = int.parse(m.group(5)!);
+    final int s = int.parse(m.group(6)!);
 
-    int y, mo, d;
-    if (a > 31) {
-      y = a;
-      mo = b;
-      d = c;
-    } else {
-      d = a;
-      mo = b;
-      y = c;
-    }
+    // Sentinel "no GPS fix" — firmware sends epoch-ish defaults before lock.
     if (y <= 2000 || mo == 0 || d == 0) return null;
+
     try {
       return DateTime(y, mo, d, h, mi, s);
     } catch (_) {
@@ -168,4 +109,8 @@ class TelemetryParser {
   }
 }
 
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
 /* End of file -------------------------------------------------------- */

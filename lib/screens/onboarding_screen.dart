@@ -31,21 +31,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<_OnboardData> _pages = const [
     _OnboardData(
-      title: 'Xe đạp công cộng - Đi bất kỳ đâu',
+      title: 'Public bikes — ride anywhere',
       desc:
-          'Bạn có thể lấy xe tại một trạm, thực hiện chuyến đi và trả xe tại một trạm bất kỳ.',
+          'Pick up a bike at any station, take your trip, and return it to '
+          'any station you like.',
       icon: Icons.car_rental_rounded,
     ),
     _OnboardData(
-      title: 'Quét QR để mở khóa',
+      title: 'Scan QR to unlock',
       desc:
-          'Chỉ cần quét QR trên xe và xác nhận sử dụng nếu số dư của bạn hợp lệ.',
+          'Scan the QR code on the bike and confirm the rental once your '
+          'balance is sufficient.',
       icon: Icons.qr_code_scanner,
     ),
     _OnboardData(
-      title: 'Kết thúc chuyến đi',
+      title: 'End your ride',
       desc:
-          'Đỗ xe tại trạm, khóa xe và xác nhận trả xe trên ứng dụng di động để kết thúc chuyến đi.',
+          'Park at a station, lock the bike and confirm the return in the '
+          'app to end your trip.',
       icon: Icons.directions_car,
     ),
   ];
@@ -123,7 +126,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               duration: kPageAnimDuration,
                               curve: Curves.easeOut,
                             ),
-                      child: const Text('Trước đó'),
+                      child: const Text('Back'),
                     ),
                   ),
                   Expanded(
@@ -134,7 +137,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               duration: kPageAnimDuration,
                               curve: Curves.easeOut,
                             ),
-                      child: const Text('Tiếp theo'),
+                      child: const Text('Next'),
                     ),
                   ),
                 ],
@@ -148,7 +151,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 14),
                     child: Text(
-                      'Đăng nhập',
+                      'Sign in',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -166,7 +169,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 14),
                     child: Text(
-                      'Đăng ký',
+                      'Register',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,

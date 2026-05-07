@@ -64,12 +64,12 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
     _handleStatusSideEffects(wallet);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nạp tiền')),
+      appBar: AppBar(title: const Text('Top up')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           const Text(
-            'Chuyển khoản theo QR bên dưới',
+            'Transfer using the QR below',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 16),
@@ -87,9 +87,9 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ngân hàng: $kBankName'),
-                  Text('Số tài khoản: $kBankAccount'),
-                  Text('Tên tài khoản: $kBankAccountHolder'),
+                  Text('Bank: $kBankName'),
+                  Text('Account: $kBankAccount'),
+                  Text('Account holder: $kBankAccountHolder'),
                 ],
               ),
             ),
@@ -98,10 +98,10 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
           TextField(
             controller: amountCtl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Số tiền cần nạp'),
+            decoration: const InputDecoration(labelText: 'Top-up amount'),
           ),
           const SizedBox(height: 12),
-          SelectableText('Nội dung: $transferContent'),
+          SelectableText('Memo: $transferContent'),
           const SizedBox(height: 18),
           FilledButton(
             onPressed: requesting || user == null
@@ -112,7 +112,7 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(requesting ? 'Đang xử lý...' : 'Tôi đã chuyển khoản'),
+              child: Text(requesting ? 'Processing...' : 'I have transferred'),
             ),
           ),
           if (wallet.phase == TopupPhase.success &&
@@ -123,8 +123,8 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
                 color: Colors.green.shade50,
                 child: ListTile(
                   leading: const Icon(Icons.check_circle, color: Colors.green),
-                  title: const Text('Nạp tiền thành công'),
-                  subtitle: Text('Số dư mới: ${wallet.latestBalance}đ'),
+                  title: const Text('Top-up successful'),
+                  subtitle: Text('New balance: ${wallet.latestBalance}đ'),
                 ),
               ),
             ),
@@ -135,7 +135,7 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
                 color: Colors.red.shade50,
                 child: ListTile(
                   leading: const Icon(Icons.error, color: Colors.red),
-                  title: const Text('Nạp tiền thất bại'),
+                  title: const Text('Top-up failed'),
                   subtitle: Text(ErrorMessages.describe(wallet.lastError!)),
                 ),
               ),

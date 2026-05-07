@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
+import '../config/feature_conf.dart';
 import '../config/mqtt_config.dart';
 import 'protocol_codec.dart';
 
@@ -42,17 +43,17 @@ class MqttService extends ChangeNotifier {
   /* --- public methods ------------------------------------------ */
   Future<bool> connect({required String clientId}) async {
     if (_state == AppMqttState.connecting) {
-      debugPrint('[MQTT] skip connect: already connecting, clientId=$_clientId');
+      _log('[MQTT] skip connect: already connecting, clientId=$_clientId');
       return false;
     }
     if (isConnected && _clientId == clientId) {
-      debugPrint('[MQTT] skip connect: already connected, clientId=$clientId');
+      _log('[MQTT] skip connect: already connected, clientId=$clientId');
       return true;
     }
 
     _clientId = clientId;
     _state = AppMqttState.connecting;
-    debugPrint('[MQTT] connecting - clientId: $clientId');
+    _log('[MQTT] connecting - clientId: $clientId');
     notifyListeners();
 
     final MqttServerClient client = MqttServerClient.withPort(
@@ -83,7 +84,9 @@ class MqttService extends ChangeNotifier {
         await client.connect();
       }
     } catch (e) {
-      debugPrint('[MQTT] exception while connecting - clientId: $clientId, error: $e');
+      _log(
+        '[MQTT] exception while connecting - clientId: $clientId, error: $e',
+      );
       client.disconnect();
       _state = AppMqttState.failed;
       notifyListeners();
@@ -102,13 +105,13 @@ class MqttService extends ChangeNotifier {
 
     _client = client;
     _state = AppMqttState.connected;
-    debugPrint('[MQTT] connected - clientId: $clientId');
+    _log('[MQTT] connected - clientId: $clientId');
 
     _messagesSub = client.updates?.listen(_onIncomingMessages);
 
     /* Re-subscribe any topics that were added before the connection was up. */
     for (final String topic in _subscribedTopics) {
-      debugPrint('[MQTT] re-subscribe after connect - topic: $topic');
+      _log('[MQTT] re-subscribe after connect - topic: $topic');
       client.subscribe(topic, MqttQos.atLeastOnce);
     }
 
@@ -117,7 +120,7 @@ class MqttService extends ChangeNotifier {
   }
 
   Future<void> disconnect() async {
-    debugPrint('[MQTT] disconnect requested - clientId: $_clientId');
+    _log('[MQTT] disconnect requested - clientId: $_clientId');
     _messagesSub?.cancel();
     _messagesSub = null;
     _client?.disconnect();
@@ -157,9 +160,9 @@ class MqttService extends ChangeNotifier {
   void _ensureSubscribed(String topic) {
     if (_subscribedTopics.contains(topic)) return;
     _subscribedTopics.add(topic);
-    debugPrint('[MQTT] register stream - topic: $topic, connected=$isConnected');
+    _log('[MQTT] register stream - topic: $topic, connected=$isConnected');
     if (isConnected) {
-      debugPrint('[MQTT] subscribe - topic: $topic');
+      _log('[MQTT] subscribe - topic: $topic');
       _client!.subscribe(topic, MqttQos.atLeastOnce);
     }
   }
@@ -167,7 +170,7 @@ class MqttService extends ChangeNotifier {
   void unsubscribe(String topic) {
     if (!_subscribedTopics.remove(topic)) return;
     if (isConnected) {
-      debugPrint('[MQTT] unsubscribe - topic: $topic');
+      _log('[MQTT] unsubscribe - topic: $topic');
       _client!.unsubscribe(topic);
     }
     _topicCtls.remove(topic)?.close();
@@ -176,12 +179,14 @@ class MqttService extends ChangeNotifier {
 
   bool publish(String topic, String payload) {
     if (!isConnected) {
-      debugPrint('[MQTT] publish failed (not connected) - topic: $topic payload: $payload');
+      _log(
+        '[MQTT] publish failed (not connected) - topic: $topic payload: $payload',
+      );
       return false;
     }
     final MqttClientPayloadBuilder builder = MqttClientPayloadBuilder();
     builder.addString(payload);
-    debugPrint('[MQTT] publish - topic: $topic payload: $payload');
+    _log('[MQTT] publish - topic: $topic payload: $payload');
     _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
     return true;
   }
@@ -203,21 +208,21 @@ class MqttService extends ChangeNotifier {
 
   /* --- private methods ----------------------------------------- */
   void _onConnected() {
-    debugPrint('[MQTT] callback onConnected - clientId: $_clientId');
+    _log('[MQTT] callback onConnected - clientId: $_clientId');
     _state = AppMqttState.connected;
     notifyListeners();
   }
 
   void _onDisconnected() {
-    debugPrint('[MQTT] callback onDisconnected - clientId: $_clientId');
+    _log('[MQTT] callback onDisconnected - clientId: $_clientId');
     _state = AppMqttState.disconnected;
     notifyListeners();
   }
 
   void _onAutoReconnected() {
-    debugPrint('[MQTT] callback onAutoReconnected - clientId: $_clientId');
+    _log('[MQTT] callback onAutoReconnected - clientId: $_clientId');
     for (final String topic in _subscribedTopics) {
-      debugPrint('[MQTT] auto re-subscribe - topic: $topic');
+      _log('[MQTT] auto re-subscribe - topic: $topic');
       _client?.subscribe(topic, MqttQos.atLeastOnce);
     }
   }
@@ -228,7 +233,7 @@ class MqttService extends ChangeNotifier {
       final String payload = MqttPublishPayload.bytesToStringAsString(
         msg.payload.message,
       );
-      debugPrint('[MQTT] incoming - topic: ${event.topic} payload: $payload');
+      _log('[MQTT] incoming - topic: ${event.topic} payload: $payload');
 
       final rawCtl = _rawTopicCtls[event.topic];
       if (rawCtl != null) rawCtl.add(payload);
@@ -241,6 +246,13 @@ class MqttService extends ChangeNotifier {
 
 /* Private classes ---------------------------------------------------- */
 /* Public functions --------------------------------------------------- */
+
 /* Private functions -------------------------------------------------- */
+
+/* Gated logger — keeps [MQTT] traces opt-in via FeatureConfig.debugMqttLog. */
+void _log(String msg) {
+  if (FeatureConfig.debugMqttLog) debugPrint(msg);
+}
+
 /* Entry point -------------------------------------------------------- */
 /* End of file -------------------------------------------------------- */

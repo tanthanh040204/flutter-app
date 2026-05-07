@@ -50,15 +50,15 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   Widget build(BuildContext context) {
     final MobileAuthProvider auth = context.watch<MobileAuthProvider>();
     return Scaffold(
-      appBar: AppBar(title: Text(loginMode ? 'Đăng nhập' : 'Đăng ký')),
+      appBar: AppBar(title: Text(loginMode ? 'Sign in' : 'Register')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             SegmentedButton<bool>(
               segments: const [
-                ButtonSegment(value: true, label: Text('Đăng nhập')),
-                ButtonSegment(value: false, label: Text('Đăng ký')),
+                ButtonSegment(value: true, label: Text('Sign in')),
+                ButtonSegment(value: false, label: Text('Register')),
               ],
               selected: {loginMode},
               onSelectionChanged: (v) => setState(() => loginMode = v.first),
@@ -67,7 +67,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             SegmentedButton<bool>(
               segments: const [
                 ButtonSegment(value: false, label: Text('Email')),
-                ButtonSegment(value: true, label: Text('Số điện thoại')),
+                ButtonSegment(value: true, label: Text('Phone')),
               ],
               selected: {usePhone},
               onSelectionChanged: (v) {
@@ -80,12 +80,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             if (!loginMode) ...[
               TextField(
                 controller: fullNameCtl,
-                decoration: const InputDecoration(labelText: 'Họ và tên'),
+                decoration: const InputDecoration(labelText: 'Full name'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: employeeCtl,
-                decoration: const InputDecoration(labelText: 'Mã Xác Nhận'),
+                decoration: const InputDecoration(labelText: 'Employee code'),
               ),
               const SizedBox(height: 12),
             ],
@@ -95,14 +95,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   ? TextInputType.phone
                   : TextInputType.emailAddress,
               decoration: InputDecoration(
-                labelText: usePhone ? 'Số điện thoại' : 'Email',
+                labelText: usePhone ? 'Phone number' : 'Email',
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: passwordCtl,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Mật khẩu'),
+              decoration: const InputDecoration(labelText: 'Password'),
             ),
             const SizedBox(height: 16),
             if (auth.error != null)
@@ -137,7 +137,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 child: auth.loading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        loginMode ? 'Đăng nhập' : 'Tạo tài khoản',
+                        loginMode ? 'Sign in' : 'Create account',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -148,12 +148,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             const SizedBox(height: 12),
             if (usePhone)
               const Text(
-                'Bản MVP: chế độ số điện thoại đang chạy theo demo để bạn test nhanh trong VS Code. Muốn chạy OTP thật cần cấu hình Firebase Phone Auth.',
+                'MVP build: phone mode runs in demo only so you can test '
+                'quickly in VS Code. Real OTP requires Firebase Phone Auth '
+                'to be configured.',
                 style: TextStyle(color: Colors.black54),
               ),
             if (!usePhone)
               const Text(
-                'Chào mừng bạn đến với UTE-GO',
+                'Welcome to UTE-GO',
                 style: TextStyle(color: Colors.black54),
               ),
           ],

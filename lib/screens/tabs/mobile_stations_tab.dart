@@ -40,7 +40,7 @@ class MobileStationsTab extends StatelessWidget {
         : userPoint;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trạm xe')),
+      appBar: AppBar(title: const Text('Stations')),
       body: FlutterMap(
         options: MapOptions(initialCenter: center, initialZoom: 15.2),
         children: [
@@ -79,7 +79,7 @@ class MobileStationsTab extends StatelessWidget {
         onPressed: () =>
             context.read<MobileStationsProvider>().refreshUserLocation(),
         icon: const Icon(Icons.refresh),
-        label: const Text('Cập nhật'),
+        label: const Text('Refresh'),
       ),
     );
   }
@@ -120,14 +120,14 @@ class MobileStationsTab extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _StationStat(
-                      label: 'Xe còn',
+                      label: 'Bikes left',
                       value: station.bikeCount.toString(),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _StationStat(
-                      label: 'Chỗ trống',
+                      label: 'Free slots',
                       value: station.availableSlots.toString(),
                     ),
                   ),
@@ -142,12 +142,12 @@ class MobileStationsTab extends StatelessWidget {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   },
                   icon: const Icon(Icons.map_outlined),
-                  label: const Text('Mở Google Maps'),
+                  label: const Text('Open in Google Maps'),
                 ),
               ),
               const SizedBox(height: 18),
               const Text(
-                'Danh sách xe tại trạm',
+                'Bikes at this station',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
@@ -181,7 +181,7 @@ class MobileStationsTab extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${bike.status} - ${bike.batteryPercent}% pin',
+                              '${bike.status} - ${bike.batteryPercent}% battery',
                               style: TextStyle(
                                 color: _batteryColor(bike.batteryPercent),
                                 fontWeight: FontWeight.w600,

@@ -47,27 +47,27 @@ class _HomeMobileShellState extends State<HomeMobileShell> {
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: 'Trang chủ',
+            label: 'Home',
           ),
           NavigationDestination(
             icon: Icon(Icons.location_on_outlined),
             selectedIcon: Icon(Icons.location_on),
-            label: 'Trạm xe',
+            label: 'Stations',
           ),
           NavigationDestination(
             icon: Icon(Icons.electric_bike_outlined),
             selectedIcon: Icon(Icons.electric_bike),
-            label: 'Thông số',
+            label: 'Ride',
           ),
           NavigationDestination(
             icon: Icon(Icons.notifications_outlined),
             selectedIcon: Icon(Icons.notifications),
-            label: 'Thông báo',
+            label: 'Alerts',
           ),
           NavigationDestination(
             icon: Icon(Icons.grid_view_outlined),
             selectedIcon: Icon(Icons.grid_view),
-            label: 'Mở rộng',
+            label: 'More',
           ),
         ],
       ),

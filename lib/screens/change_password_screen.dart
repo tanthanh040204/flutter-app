@@ -37,20 +37,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Đổi mật khẩu')),
+      appBar: AppBar(title: const Text('Change password')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
             controller: currentCtl,
             obscureText: true,
-            decoration: const InputDecoration(labelText: 'Mật khẩu hiện tại'),
+            decoration: const InputDecoration(labelText: 'Current password'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: newCtl,
             obscureText: true,
-            decoration: const InputDecoration(labelText: 'Mật khẩu mới'),
+            decoration: const InputDecoration(labelText: 'New password'),
           ),
           const SizedBox(height: 16),
           FilledButton(
@@ -58,30 +58,35 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 ? null
                 : () async {
                     setState(() => loading = true);
+                    final ScaffoldMessengerState messenger =
+                        ScaffoldMessenger.of(context);
+                    final NavigatorState navigator = Navigator.of(context);
+                    final MobileAuthProvider auth = context
+                        .read<MobileAuthProvider>();
                     try {
-                      await context.read<MobileAuthProvider>().changePassword(
+                      await auth.changePassword(
                         currentPassword: currentCtl.text,
                         newPassword: newCtl.text,
                       );
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
-                          content: Text('Đổi mật khẩu thành công.'),
+                          content: Text('Password changed successfully.'),
                         ),
                       );
-                      Navigator.pop(context);
+                      navigator.pop();
                     } catch (e) {
                       if (!mounted) return;
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(e.toString())));
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(e.toString())),
+                      );
                     } finally {
                       if (mounted) setState(() => loading = false);
                     }
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(loading ? 'Đang xử lý...' : 'Lưu mật khẩu mới'),
+              child: Text(loading ? 'Saving...' : 'Save new password'),
             ),
           ),
         ],

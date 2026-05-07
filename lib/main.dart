@@ -55,7 +55,8 @@ class TnGoUserApp extends StatelessWidget {
             telemetry: context.read<MobileTelemetryProvider>(),
           ),
           update: (context, auth, previous) {
-            final MobileRideProvider provider = previous ??
+            final MobileRideProvider provider =
+                previous ??
                 MobileRideProvider(
                   context.read<MqttService>(),
                   telemetry: context.read<MobileTelemetryProvider>(),
@@ -80,7 +81,10 @@ class TnGoUserApp extends StatelessWidget {
           update: (context, auth, previous) =>
               previous!..bindUser(auth.currentUser?.uid),
         ),
-        ChangeNotifierProvider(create: (_) => MobileStationsProvider()),
+        ChangeNotifierProvider(
+          create: (context) =>
+              MobileStationsProvider(context.read<MobileUserRepo>()),
+        ),
       ],
       child: MaterialApp(
         title: kAppTitle,

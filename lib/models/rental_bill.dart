@@ -10,9 +10,9 @@
 
 /* Public classes ----------------------------------------------------- */
 class RentalBill {
-  final String   userId;
-  final int      amount;
-  final String   status;
+  final String userId;
+  final int amount;
+  final String status;
   final DateTime endedAt;
 
   const RentalBill({

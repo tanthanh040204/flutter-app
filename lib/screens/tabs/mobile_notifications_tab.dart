@@ -29,7 +29,7 @@ class MobileNotificationsTab extends StatelessWidget {
     final MobileNoticeProvider provider = context.watch<MobileNoticeProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Thông báo')),
+      appBar: AppBar(title: const Text('Notifications')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -45,7 +45,7 @@ class MobileNotificationsTab extends StatelessWidget {
           if (provider.routes.isNotEmpty) ...[
             const SizedBox(height: 12),
             const Text(
-              'Lộ trình',
+              'Routes',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),

@@ -29,7 +29,7 @@ class MobileMoreTab extends StatelessWidget {
     if (user == null) return const SizedBox.shrink();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mở rộng')),
+      appBar: AppBar(title: const Text('More')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -74,7 +74,7 @@ class MobileMoreTab extends StatelessWidget {
           const SizedBox(height: 18),
           ListTile(
             leading: const Icon(Icons.lock_reset),
-            title: const Text('Đổi mật khẩu'),
+            title: const Text('Change password'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.of(context).push(
@@ -85,7 +85,7 @@ class MobileMoreTab extends StatelessWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.price_change),
-            title: const Text('Bảng giá'),
+            title: const Text('Pricing'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.of(
@@ -96,7 +96,7 @@ class MobileMoreTab extends StatelessWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Đăng xuất'),
+            title: const Text('Sign out'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.read<MobileAuthProvider>().logout(),
           ),
