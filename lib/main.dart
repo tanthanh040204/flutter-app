@@ -8,11 +8,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
- 
 
- 
 import 'config/app_theme.dart';
 import 'firebase_options.dart';
+import 'providers/app_language_provider.dart';
 import 'providers/mobile_auth_provider.dart';
 import 'providers/mobile_notice_provider.dart';
 import 'providers/mobile_ride_provider.dart';
@@ -38,6 +37,9 @@ class TnGoUserApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<MobileUserRepo>(create: (_) => MobileUserRepo.instance),
+        ChangeNotifierProvider<AppLanguageProvider>(
+          create: (_) => AppLanguageProvider(),
+        ),
         ChangeNotifierProvider<MqttService>(
           create: (_) => MqttService(),
           lazy: false,
@@ -88,11 +90,16 @@ class TnGoUserApp extends StatelessWidget {
               MobileStationsProvider(context.read<MobileUserRepo>()),
         ),
       ],
-      child: MaterialApp(
-        title: kAppTitle,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const MobileBootstrap(),
+      child: Consumer<AppLanguageProvider>(
+        builder: (context, language, _) {
+          return MaterialApp(
+            title: kAppTitle,
+            debugShowCheckedModeBanner: false,
+            locale: language.locale,
+            theme: AppTheme.lightTheme,
+            home: const MobileBootstrap(),
+          );
+        },
       ),
     );
   }
