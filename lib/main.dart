@@ -24,6 +24,7 @@ import 'services/mqtt_service.dart';
 /* Constants ---------------------------------------------------------- */
 const String kAppTitle = 'UTE-go';
 
+
 /* Enums -------------------------------------------------------------- */
 /* Typedef / Function types ------------------------------------------ */
 
