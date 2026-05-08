@@ -6,15 +6,12 @@
 /* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import 'tabs/mobile_home_tab.dart';
 import 'tabs/mobile_more_tab.dart';
 import 'tabs/mobile_notifications_tab.dart';
 import 'tabs/mobile_ride_tab.dart';
 import 'tabs/mobile_stations_tab.dart';
-
-/* Constants ---------------------------------------------------------- */
-/* Enums -------------------------------------------------------------- */
-/* Typedef / Function types ------------------------------------------ */
 
 /* Public classes ----------------------------------------------------- */
 class HomeMobileShell extends StatefulWidget {
@@ -38,36 +35,38 @@ class _HomeMobileShellState extends State<HomeMobileShell> {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
+
     return Scaffold(
       body: pages[index],
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) => setState(() => index = i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: t.home,
           ),
           NavigationDestination(
-            icon: Icon(Icons.location_on_outlined),
-            selectedIcon: Icon(Icons.location_on),
-            label: 'Stations',
+            icon: const Icon(Icons.location_on_outlined),
+            selectedIcon: const Icon(Icons.location_on),
+            label: t.stations,
           ),
           NavigationDestination(
-            icon: Icon(Icons.electric_bike_outlined),
-            selectedIcon: Icon(Icons.electric_bike),
-            label: 'Ride',
+            icon: const Icon(Icons.electric_bike_outlined),
+            selectedIcon: const Icon(Icons.electric_bike),
+            label: t.rideStats,
           ),
           NavigationDestination(
-            icon: Icon(Icons.notifications_outlined),
-            selectedIcon: Icon(Icons.notifications),
-            label: 'Alerts',
+            icon: const Icon(Icons.notifications_outlined),
+            selectedIcon: const Icon(Icons.notifications),
+            label: t.notifications,
           ),
           NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view),
-            label: 'More',
+            icon: const Icon(Icons.grid_view_outlined),
+            selectedIcon: const Icon(Icons.grid_view),
+            label: t.more,
           ),
         ],
       ),
@@ -75,7 +74,4 @@ class _HomeMobileShellState extends State<HomeMobileShell> {
   }
 }
 
-/* Public functions --------------------------------------------------- */
-/* Private functions -------------------------------------------------- */
-/* Entry point -------------------------------------------------------- */
 /* End of file -------------------------------------------------------- */
