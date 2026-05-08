@@ -7,7 +7,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../providers/mobile_auth_provider.dart';
+import '../widgets/language_switch.dart';
 
 /* Constants ---------------------------------------------------------- */
 const Duration kPageAnimDuration = Duration(milliseconds: 250);
@@ -29,45 +31,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   int _index = 0;
 
-  final List<_OnboardData> _pages = const [
-    _OnboardData(
-      title: 'Public bikes — ride anywhere',
-      desc:
-          'Pick up a bike at any station, take your trip, and return it to '
-          'any station you like.',
-      icon: Icons.car_rental_rounded,
-    ),
-    _OnboardData(
-      title: 'Scan QR to unlock',
-      desc:
-          'Scan the QR code on the bike and confirm the rental once your '
-          'balance is sufficient.',
-      icon: Icons.qr_code_scanner,
-    ),
-    _OnboardData(
-      title: 'End your ride',
-      desc:
-          'Park at a station, lock the bike and confirm the return in the '
-          'app to end your trip.',
-      icon: Icons.directions_car,
-    ),
-  ];
+  List<_OnboardData> _pages(AppStrings t) => [
+        _OnboardData(
+          title: t.onboardingTitle1,
+          desc: t.onboardingDesc1,
+          icon: Icons.car_rental_rounded,
+        ),
+        _OnboardData(
+          title: t.onboardingTitle2,
+          desc: t.onboardingDesc2,
+          icon: Icons.qr_code_scanner,
+        ),
+        _OnboardData(
+          title: t.onboardingTitle3,
+          desc: t.onboardingDesc3,
+          icon: Icons.directions_car,
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
+    final List<_OnboardData> pages = _pages(t);
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
+              const Align(
+                alignment: Alignment.centerRight,
+                child: LanguageSwitch(),
+              ),
+              const SizedBox(height: 8),
               Expanded(
                 child: PageView.builder(
                   controller: _controller,
-                  itemCount: _pages.length,
+                  itemCount: pages.length,
                   onPageChanged: (i) => setState(() => _index = i),
                   itemBuilder: (_, i) {
-                    final _OnboardData page = _pages[i];
+                    final _OnboardData page = pages[i];
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -101,7 +105,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_pages.length, (i) {
+                children: List.generate(pages.length, (i) {
                   final bool active = i == _index;
                   return AnimatedContainer(
                     duration: kDotAnimDuration,
@@ -126,18 +130,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               duration: kPageAnimDuration,
                               curve: Curves.easeOut,
                             ),
-                      child: const Text('Back'),
+                      child: Text(t.previous),
                     ),
                   ),
                   Expanded(
                     child: TextButton(
-                      onPressed: _index == _pages.length - 1
+                      onPressed: _index == pages.length - 1
                           ? null
                           : () => _controller.nextPage(
                               duration: kPageAnimDuration,
                               curve: Curves.easeOut,
                             ),
-                      child: const Text('Next'),
+                      child: Text(t.next),
                     ),
                   ),
                 ],
@@ -148,11 +152,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: FilledButton(
                   onPressed: () =>
                       context.read<MobileAuthProvider>().finishOnboarding(),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Text(
-                      'Sign in',
-                      style: TextStyle(
+                      t.login,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -166,11 +170,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: FilledButton.tonal(
                   onPressed: () =>
                       context.read<MobileAuthProvider>().finishOnboarding(),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Text(
-                      'Register',
-                      style: TextStyle(
+                      t.register,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),

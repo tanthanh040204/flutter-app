@@ -1,12 +1,15 @@
 /*
  * @file       mobile_more_tab.dart
- * @brief      "More" tab: profile card, change password, pricing and logout.
+ * @brief      "More" tab: profile card, language switcher, password, pricing
+ *             and logout.
  */
 
 /* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_strings.dart';
+import '../../providers/app_language_provider.dart';
 import '../../providers/mobile_auth_provider.dart';
 import '../change_password_screen.dart';
 import '../pricing_screen.dart';
@@ -15,21 +18,21 @@ import '../pricing_screen.dart';
 const Color kHeaderGradientStart = Color(0xFF1557FF);
 const Color kHeaderGradientEnd = Color(0xFF2F80ED);
 
-/* Enums -------------------------------------------------------------- */
-/* Typedef / Function types ------------------------------------------ */
-
 /* Public classes ----------------------------------------------------- */
 class MobileMoreTab extends StatelessWidget {
   const MobileMoreTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
+    final AppLanguageProvider languageProvider =
+        context.watch<AppLanguageProvider>();
     final MobileAuthProvider auth = context.watch<MobileAuthProvider>();
     final user = auth.currentUser;
     if (user == null) return const SizedBox.shrink();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('More')),
+      appBar: AppBar(title: Text(t.more)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -62,7 +65,7 @@ class MobileMoreTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        user.employeeCode,
+                        user.email ?? user.phone ?? user.employeeCode,
                         style: const TextStyle(color: Colors.white70),
                       ),
                     ],
@@ -72,9 +75,65 @@ class MobileMoreTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.language, color: kHeaderGradientStart),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t.language,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              t.languageSubtitle,
+                              style: const TextStyle(color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<AppLanguage>(
+                      segments: [
+                        ButtonSegment(
+                          value: AppLanguage.vi,
+                          label: Text(t.vietnamese),
+                        ),
+                        ButtonSegment(
+                          value: AppLanguage.en,
+                          label: Text(t.english),
+                        ),
+                      ],
+                      selected: {languageProvider.language},
+                      onSelectionChanged: (value) => context
+                          .read<AppLanguageProvider>()
+                          .setLanguage(value.first),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
           ListTile(
             leading: const Icon(Icons.lock_reset),
-            title: const Text('Change password'),
+            title: Text(t.changePassword),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.of(context).push(
@@ -85,18 +144,18 @@ class MobileMoreTab extends StatelessWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.price_change),
-            title: const Text('Pricing'),
+            title: Text(t.priceList),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const PricingScreen()));
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PricingScreen()),
+              );
             },
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Sign out'),
+            title: Text(t.logout),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.read<MobileAuthProvider>().logout(),
           ),
@@ -106,8 +165,4 @@ class MobileMoreTab extends StatelessWidget {
   }
 }
 
-/* Private classes ---------------------------------------------------- */
-/* Public functions --------------------------------------------------- */
-/* Private functions -------------------------------------------------- */
-/* Entry point -------------------------------------------------------- */
 /* End of file -------------------------------------------------------- */

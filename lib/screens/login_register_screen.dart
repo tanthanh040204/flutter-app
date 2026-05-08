@@ -1,20 +1,20 @@
 /*
  * @file       login_register_screen.dart
- * @brief      Combined login / register screen with email or phone modes.
+ * @brief      Combined login / register screen with email, phone and password.
  */
 
 /* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../providers/mobile_auth_provider.dart';
+import '../widgets/language_switch.dart';
 
 /* Constants ---------------------------------------------------------- */
-const String kDefaultDemoIdentifier = 'demo@tngo.vn';
+const String kDefaultDemoEmail = 'demo@tngo.vn';
+const String kDefaultDemoPhone = '0900000001';
 const String kDefaultDemoPassword = '123456';
-
-/* Enums -------------------------------------------------------------- */
-/* Typedef / Function types ------------------------------------------ */
 
 /* Public classes ----------------------------------------------------- */
 class LoginRegisterScreen extends StatefulWidget {
@@ -27,84 +27,204 @@ class LoginRegisterScreen extends StatefulWidget {
 /* Private classes ---------------------------------------------------- */
 class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool loginMode = true;
-  bool usePhone = false;
-  final TextEditingController fullNameCtl = TextEditingController();
-  final TextEditingController employeeCtl = TextEditingController();
-  final TextEditingController identifierCtl = TextEditingController(
-    text: kDefaultDemoIdentifier,
+  bool obscurePassword = true;
+  bool obscureConfirmPassword = true;
+
+  final TextEditingController fullNameCtl = TextEditingController(
+    text: 'Người dùng UTE-GO',
+  );
+  final TextEditingController emailCtl = TextEditingController(
+    text: kDefaultDemoEmail,
+  );
+  final TextEditingController phoneCtl = TextEditingController(
+    text: kDefaultDemoPhone,
   );
   final TextEditingController passwordCtl = TextEditingController(
+    text: kDefaultDemoPassword,
+  );
+  final TextEditingController confirmPasswordCtl = TextEditingController(
     text: kDefaultDemoPassword,
   );
 
   @override
   void dispose() {
     fullNameCtl.dispose();
-    employeeCtl.dispose();
-    identifierCtl.dispose();
+    emailCtl.dispose();
+    phoneCtl.dispose();
     passwordCtl.dispose();
+    confirmPasswordCtl.dispose();
     super.dispose();
+  }
+
+  bool _validate() {
+    final AppStrings t = context.readTr;
+    final String email = emailCtl.text.trim();
+    final String phone = phoneCtl.text.trim();
+    final String password = passwordCtl.text.trim();
+    final String confirmPassword = confirmPasswordCtl.text.trim();
+
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.invalidEmail)),
+      );
+      return false;
+    }
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.passwordRequired)),
+      );
+      return false;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.passwordMinLength)),
+      );
+      return false;
+    }
+
+    if (!loginMode && phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.phoneRequired)),
+      );
+      return false;
+    }
+
+    if (!loginMode && confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.confirmPasswordRequired)),
+      );
+      return false;
+    }
+
+    if (!loginMode && password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.passwordMismatch)),
+      );
+      return false;
+    }
+
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     final MobileAuthProvider auth = context.watch<MobileAuthProvider>();
+
     return Scaffold(
-      appBar: AppBar(title: Text(loginMode ? 'Sign in' : 'Register')),
+      appBar: AppBar(
+        title: Text(loginMode ? t.login : t.register),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: LanguageSwitch(),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: true, label: Text('Sign in')),
-                ButtonSegment(value: false, label: Text('Register')),
+              segments: [
+                ButtonSegment(value: true, label: Text(t.login)),
+                ButtonSegment(value: false, label: Text(t.register)),
               ],
               selected: {loginMode},
-              onSelectionChanged: (v) => setState(() => loginMode = v.first),
-            ),
-            const SizedBox(height: 12),
-            SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: false, label: Text('Email')),
-                ButtonSegment(value: true, label: Text('Phone')),
-              ],
-              selected: {usePhone},
-              onSelectionChanged: (v) {
-                setState(() {
-                  usePhone = v.first;
-                });
-              },
+              onSelectionChanged: (value) =>
+                  setState(() => loginMode = value.first),
             ),
             const SizedBox(height: 20),
+
             if (!loginMode) ...[
               TextField(
                 controller: fullNameCtl,
-                decoration: const InputDecoration(labelText: 'Full name'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: employeeCtl,
-                decoration: const InputDecoration(labelText: 'Employee code'),
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: t.fullName,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.person_outline),
+                ),
               ),
               const SizedBox(height: 12),
             ],
+
             TextField(
-              controller: identifierCtl,
-              keyboardType: usePhone
-                  ? TextInputType.phone
-                  : TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: usePhone ? 'Phone number' : 'Email',
+              controller: emailCtl,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.email_outlined),
               ),
             ),
             const SizedBox(height: 12),
+
             TextField(
               controller: passwordCtl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: obscurePassword,
+              textInputAction: loginMode
+                  ? TextInputAction.done
+                  : TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: t.password,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  tooltip: obscurePassword ? t.showPassword : t.hidePassword,
+                  icon: Icon(
+                    obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  onPressed: () =>
+                      setState(() => obscurePassword = !obscurePassword),
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+
+            if (!loginMode) ...[
+              TextField(
+                controller: confirmPasswordCtl,
+                obscureText: obscureConfirmPassword,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: t.confirmPassword,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_reset_outlined),
+                  suffixIcon: IconButton(
+                    tooltip: obscureConfirmPassword
+                        ? t.showPassword
+                        : t.hidePassword,
+                    icon: Icon(
+                      obscureConfirmPassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () => setState(
+                      () => obscureConfirmPassword = !obscureConfirmPassword,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneCtl,
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: t.phoneNumber,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
             if (auth.error != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -113,23 +233,30 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   style: const TextStyle(color: Colors.red),
                 ),
               ),
+
             FilledButton(
               onPressed: auth.loading
                   ? null
                   : () async {
+                      if (!_validate()) return;
+
                       final bool ok = loginMode
                           ? await auth.login(
-                              identifier: identifierCtl.text,
-                              password: passwordCtl.text,
-                              usePhone: usePhone,
+                              identifier: emailCtl.text.trim(),
+                              password: passwordCtl.text.trim(),
+                              usePhone: false,
                             )
                           : await auth.register(
-                              fullName: fullNameCtl.text,
-                              employeeCode: employeeCtl.text,
-                              identifier: identifierCtl.text,
-                              password: passwordCtl.text,
-                              usePhone: usePhone,
+                              fullName: fullNameCtl.text.trim().isEmpty
+                                  ? t.demoUserName
+                                  : fullNameCtl.text.trim(),
+                              employeeCode: '',
+                              identifier: emailCtl.text.trim(),
+                              phone: phoneCtl.text.trim(),
+                              password: passwordCtl.text.trim(),
+                              usePhone: false,
                             );
+
                       if (!mounted || !ok) return;
                     },
               child: Padding(
@@ -137,7 +264,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 child: auth.loading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        loginMode ? 'Sign in' : 'Create account',
+                        loginMode ? t.login : t.createAccount,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -146,18 +273,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            if (usePhone)
-              const Text(
-                'MVP build: phone mode runs in demo only so you can test '
-                'quickly in VS Code. Real OTP requires Firebase Phone Auth '
-                'to be configured.',
-                style: TextStyle(color: Colors.black54),
-              ),
-            if (!usePhone)
-              const Text(
-                'Welcome to UTE-GO',
-                style: TextStyle(color: Colors.black54),
-              ),
+            Text(
+              loginMode ? t.loginHint : t.registerHint,
+              style: const TextStyle(color: Colors.black54),
+            ),
           ],
         ),
       ),
@@ -165,7 +284,4 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   }
 }
 
-/* Public functions --------------------------------------------------- */
-/* Private functions -------------------------------------------------- */
-/* Entry point -------------------------------------------------------- */
 /* End of file -------------------------------------------------------- */

@@ -311,8 +311,9 @@ class MobileUserRepo {
       );
     }
 
+    final String normalizedEmail = identifier.trim();
     final UserCredential cred = await _auth!.signInWithEmailAndPassword(
-      email: identifier.trim(),
+      email: normalizedEmail,
       password: password.trim(),
     );
 
@@ -334,19 +335,31 @@ class MobileUserRepo {
     required String identifier,
     required String password,
     required bool usePhone,
+    String? phone,
   }) async {
+    final String normalizedEmployeeCode = employeeCode.trim().isEmpty
+        ? 'NV${kDefaultEmployeeCodeLow + _rnd.nextInt(kDefaultEmployeeCodeSpan)}'
+        : employeeCode.trim();
+    final String normalizedEmail = identifier.trim();
+    final String? normalizedPhone = phone?.trim().isEmpty == true
+        ? null
+        : phone?.trim();
+
     if (_useLocalDemo) {
       final String uid = 'demo_${DateTime.now().millisecondsSinceEpoch}';
       final _DemoAccount account = _DemoAccount(
         uid: uid,
-        email: usePhone ? null : identifier.trim(),
-        phone: usePhone ? identifier.trim() : null,
+        email: usePhone ? null : normalizedEmail,
+        phone: usePhone ? normalizedEmail : normalizedPhone,
         password: password.trim(),
-        employeeCode: employeeCode.trim(),
+        employeeCode: normalizedEmployeeCode,
         fullName: fullName.trim(),
         balance: kNewUserSeedBalance,
       );
       _demoAccounts[identifier.trim()] = account;
+      if (account.phone != null && account.phone!.isNotEmpty) {
+        _demoAccounts[account.phone!] = account;
+      }
       final MobileUserProfile profile = _demoProfileFromAccount(account);
       _pushDemoProfile(profile);
       await addLoginEvent(profile.employeeCode);
@@ -361,17 +374,17 @@ class MobileUserRepo {
     }
 
     final UserCredential cred = await _auth!.createUserWithEmailAndPassword(
-      email: identifier.trim(),
+      email: normalizedEmail,
       password: password.trim(),
     );
 
     final String uid = cred.user!.uid;
     final MobileUserProfile profile = MobileUserProfile(
       uid: uid,
-      employeeCode: employeeCode.trim(),
+      employeeCode: normalizedEmployeeCode,
       fullName: fullName.trim(),
-      phone: null,
-      email: identifier.trim(),
+      phone: normalizedPhone,
+      email: normalizedEmail,
       role: kRoleUser,
       balance: kNewUserSeedBalance,
       depositLocked: 0,

@@ -55,6 +55,8 @@ class MobileRideProvider extends ChangeNotifier {
   String? _bikeId;
   DateTime? _startedAt;
   int _liveRemainingSeconds = 0;
+  int _countdownBaseSeconds = 3600;
+  int _selectedRentalHours = 1;
 
   /* --- public fields ------------------------------------------- */
   RentalPhase phase = RentalPhase.idle;
@@ -70,6 +72,9 @@ class MobileRideProvider extends ChangeNotifier {
 
   /* --- public getters ------------------------------------------ */
   int get liveRemainingSeconds => _liveRemainingSeconds;
+  int get selectedRentalHours => _selectedRentalHours;
+  int get selectedUsageFee => pricing.pricePerHour * _selectedRentalHours;
+  int get selectedTotalRequired => selectedUsageFee + pricing.depositAmount;
   String? get currentBikeId => _bikeId;
   bool get isRunning => phase == RentalPhase.running;
   bool get isPaused => phase == RentalPhase.paused;
@@ -94,7 +99,17 @@ class MobileRideProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> startRental({required String bikeId}) async {
+  void setSelectedRentalHours(int hours) {
+    if (hours < 1) return;
+    if (_selectedRentalHours == hours) return;
+    _selectedRentalHours = hours;
+    notifyListeners();
+  }
+
+  Future<bool> startRental({required String bikeId, int? rentalHours}) async {
+    if (rentalHours != null) {
+      setSelectedRentalHours(rentalHours);
+    }
     if (_uid == null || _wireUserId == null) {
       lastError = 'Not signed in.';
       if (FeatureConfig.debugRideLog) {
@@ -120,7 +135,7 @@ class MobileRideProvider extends ChangeNotifier {
 
     final bool ok = _mqtt.publish(
       MqttTopics.appToWeb(bikeId),
-      ProtocolCodec.build(kCmdStartRental, [wireUserId]),
+      ProtocolCodec.build(kCmdStartRental, [wireUserId, _selectedRentalHours.toString()]),
     );
     if (!ok) {
       if (FeatureConfig.debugRideLog) {
@@ -203,6 +218,7 @@ class MobileRideProvider extends ChangeNotifier {
     _bikeId = null;
     _startedAt = null;
     _liveRemainingSeconds = 0;
+    _countdownBaseSeconds = _selectedRentalHours * 3600;
     phase = RentalPhase.idle;
     lastBill = null;
     lastError = null;
@@ -263,13 +279,15 @@ class MobileRideProvider extends ChangeNotifier {
     _startedAt = startTimeStr != null ? DateTime.tryParse(startTimeStr) : null;
     _startedAt ??= DateTime.now();
     phase = RentalPhase.running;
-    _liveRemainingSeconds = 0;
+    _countdownBaseSeconds = _selectedRentalHours * 3600;
+    _liveRemainingSeconds = _countdownBaseSeconds;
     _restartTicker();
     notifyListeners();
   }
 
   void _onPauseSuccess() {
     phase = RentalPhase.paused;
+    _countdownBaseSeconds = _liveRemainingSeconds;
     _timer?.cancel();
     _startPauseTimeout();
     notifyListeners();
@@ -277,6 +295,7 @@ class MobileRideProvider extends ChangeNotifier {
 
   void _onResumeSuccess() {
     phase = RentalPhase.running;
+    _startedAt = DateTime.now();
     _pauseTimeoutTimer?.cancel();
     _pauseTimeoutTimer = null;
     _restartTicker();
@@ -325,10 +344,10 @@ class MobileRideProvider extends ChangeNotifier {
     final DateTime? started = _startedAt;
     if (started == null) return;
     final int elapsed = DateTime.now().difference(started).inSeconds;
-    _liveRemainingSeconds = elapsed.clamp(
-      0,
-      FeatureConfig.rentalRemainingSecondsMax,
-    );
+    final int remaining = _countdownBaseSeconds - elapsed;
+    _liveRemainingSeconds = remaining
+        .clamp(0, FeatureConfig.rentalRemainingSecondsMax)
+        .toInt();
     notifyListeners();
   }
 

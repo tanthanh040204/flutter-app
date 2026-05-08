@@ -72,6 +72,7 @@ class MobileAuthProvider extends ChangeNotifier {
     required String identifier,
     required String password,
     required bool usePhone,
+    String? phone,
   }) async {
     _loading = true;
     _error = null;

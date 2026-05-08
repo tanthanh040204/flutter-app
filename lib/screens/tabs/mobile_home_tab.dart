@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../models/error_codes.dart';
 import '../../providers/mobile_auth_provider.dart';
 import '../../providers/mobile_ride_provider.dart';
@@ -16,6 +17,7 @@ import '../../services/protocol_codec.dart';
 import '../bill_screen.dart';
 import '../qr_scan_screen.dart';
 import '../wallet_topup_screen.dart';
+import '../../widgets/language_switch.dart';
 
 /* Constants ---------------------------------------------------------- */
 const Color kHeaderGradientStart = Color(0xFF1557FF);
@@ -38,9 +40,38 @@ class MobileHomeTab extends StatefulWidget {
 class _MobileHomeTabState extends State<MobileHomeTab> {
   bool _billShown = false;
   DateTime? _lastDeductedBillAt;
+  late final TextEditingController _hoursCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoursCtrl = TextEditingController(text: '1');
+  }
+
+  @override
+  void dispose() {
+    _hoursCtrl.dispose();
+    super.dispose();
+  }
+
+  bool _applyHours(BuildContext context) {
+    final MobileRideProvider ride = context.read<MobileRideProvider>();
+    final int? hours = int.tryParse(_hoursCtrl.text.trim());
+
+    if (hours == null || hours <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.readTr.invalidHours)),
+      );
+      return false;
+    }
+
+    ride.setSelectedRentalHours(hours);
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     final MobileAuthProvider auth = context.watch<MobileAuthProvider>();
     final MobileRideProvider ride = context.watch<MobileRideProvider>();
     final user = auth.currentUser;
@@ -50,24 +81,36 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     _handleRideSideEffects(auth, ride);
 
     final NumberFormat money = NumberFormat.currency(
-      locale: kCurrencyLocale,
-      symbol: kCurrencySymbol,
+      locale: t.moneyLocale,
+      symbol: t.moneySymbol,
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
+      appBar: AppBar(
+        title: Text(t.home),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: LanguageSwitch(),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildHeader(
             user.fullName,
-            user.employeeCode,
+            user.email ?? user.phone ?? user.employeeCode,
             user.balance,
             user.depositLocked,
             money,
           ),
           const SizedBox(height: 16),
-          _buildQuickActions(),
+          if (!ride.hasActiveSession && ride.phase != RentalPhase.starting) ...[
+            _buildRentalTimeCard(ride, money, t),
+            const SizedBox(height: 16),
+          ],
+          _buildQuickActions(t),
           const SizedBox(height: 20),
           if (ride.warning != null) _buildWarningCard(ride),
           if (ride.lastError != null && !ride.hasActiveSession)
@@ -101,7 +144,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
 
   Widget _buildHeader(
     String fullName,
-    String employeeCode,
+    String userCode,
     int balance,
     int depositLocked,
     NumberFormat money,
@@ -118,7 +161,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hello, $fullName',
+            context.tr.hello(fullName),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -127,7 +170,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Employee code: $employeeCode',
+            userCode,
             style: const TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: 18),
@@ -135,14 +178,14 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
             children: [
               Expanded(
                 child: _QuickCard(
-                  title: 'Balance',
+                  title: context.tr.balance,
                   value: money.format(balance),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _QuickCard(
-                  title: 'Deposit',
+                  title: context.tr.deposit,
                   value: money.format(depositLocked),
                 ),
               ),
@@ -153,7 +196,66 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildRentalTimeCard(
+    MobileRideProvider ride,
+    NumberFormat money,
+    AppStrings t,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.enterRentalTime,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _hoursCtrl,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: t.rentalHoursLabel,
+              hintText: t.hourHint,
+              border: const OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.timer_outlined),
+            ),
+            onChanged: (_) => _applyHours(context),
+            onSubmitted: (_) => _applyHours(context),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            t.selectedRentalHours(ride.selectedRentalHours),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            t.rentalFee(money.format(ride.selectedUsageFee)),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            t.depositFee(money.format(ride.pricing.depositAmount)),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            t.requiredTotal(money.format(ride.selectedTotalRequired)),
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: kHeaderGradientStart,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(AppStrings t) {
     return Row(
       children: [
         Expanded(
@@ -162,17 +264,20 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               MaterialPageRoute(builder: (_) => const WalletTopupScreen()),
             ),
             icon: const Icon(Icons.qr_code_2),
-            label: const Text('Top up'),
+            label: Text(t.topUp),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: FilledButton.tonalIcon(
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const QrScanScreen())),
+            onPressed: () {
+              if (!_applyHours(context)) return;
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const QrScanScreen()),
+              );
+            },
             icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('Scan QR'),
+            label: Text(t.scanQr),
           ),
         ),
       ],
@@ -244,15 +349,18 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
         ),
-        child: const Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'No active ride',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              context.tr.noRideTitle,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-            SizedBox(height: 8),
-            Text('Top up your balance and scan a bike QR code to get going.'),
+            const SizedBox(height: 8),
+            Text(context.tr.noRideDesc),
           ],
         ),
       );
@@ -289,8 +397,9 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Bike ${ride.currentBikeId ?? ''} — '
-            '${ride.isPaused ? 'paused' : 'in use'}',
+            ride.isPaused
+                ? 'Bike ${ride.currentBikeId ?? ''} — ${context.tr.pause}'
+                : context.tr.vehicleInUse('Bike ${ride.currentBikeId ?? ''}'),
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
@@ -305,8 +414,8 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
           const SizedBox(height: 6),
           Text(
             ride.isPaused
-                ? 'Paused rate: 50% off (${ride.effectivePricePerHour}đ/hour).'
-                : 'Rate: ${ride.pricing.pricePerHour}đ/hour.',
+                ? '${context.tr.pause}: ${ride.effectivePricePerHour}đ/hour.'
+                : '${context.tr.pricePerHour}: ${ride.pricing.pricePerHour}đ/hour.',
           ),
           const SizedBox(height: 14),
           Row(
@@ -314,7 +423,9 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               Expanded(
                 child: FilledButton.tonal(
                   onPressed: ride.isPaused ? ride.resumeRide : ride.pauseRide,
-                  child: Text(ride.isPaused ? 'Resume' : 'Pause'),
+                  child: Text(
+                    ride.isPaused ? context.tr.resume : context.tr.pause,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -325,8 +436,8 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
                       : ride.endRide,
                   child: Text(
                     ride.phase == RentalPhase.stopping
-                        ? 'Ending...'
-                        : 'End ride',
+                        ? context.tr.processing
+                        : context.tr.end,
                   ),
                 ),
               ),

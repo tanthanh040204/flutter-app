@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../models/error_codes.dart';
 import '../../providers/mobile_ride_provider.dart';
 import '../../services/protocol_codec.dart';
@@ -22,14 +23,15 @@ class MobileRideTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     final MobileRideProvider ride = context.watch<MobileRideProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ride')),
+      appBar: AppBar(title: Text(t.rideStats)),
       body: !ride.hasActiveSession
-          ? const Center(
+          ? Center(
               child: Text(
-                'No active ride',
+                t.notUsingBike,
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
               ),
             )
@@ -57,17 +59,17 @@ class MobileRideTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 _InfoRow(
-                  label: 'Status',
-                  value: ride.isPaused ? 'Paused' : 'In use',
+                  label: context.tr.status,
+                  value: ride.isPaused ? context.tr.pause : context.tr.unlocked,
                 ),
                 _InfoRow(
-                  label: 'Current rate',
+                  label: context.tr.pricePerHour,
                   value:
                       '${ride.effectivePricePerHour}đ/hour'
                       '${ride.isPaused ? ' (50% off)' : ''}',
                 ),
                 _InfoRow(
-                  label: 'Time elapsed',
+                  label: context.tr.remainingTime,
                   value: _formatSeconds(ride.liveRemainingSeconds),
                 ),
               ],
@@ -79,7 +81,7 @@ class MobileRideTab extends StatelessWidget {
           onPressed: ride.isPaused ? ride.resumeRide : ride.pauseRide,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Text(ride.isPaused ? 'Resume ride' : 'Pause ride'),
+            child: Text(ride.isPaused ? context.tr.resumeUse : context.tr.pauseUse),
           ),
         ),
         const SizedBox(height: 12),
@@ -88,7 +90,9 @@ class MobileRideTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Text(
-              ride.phase == RentalPhase.stopping ? 'Ending...' : 'End ride',
+              ride.phase == RentalPhase.stopping
+                  ? context.tr.processing
+                  : context.tr.stopUse,
             ),
           ),
         ),
