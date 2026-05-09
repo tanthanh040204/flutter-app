@@ -28,14 +28,7 @@ const int kDefaultLowBatteryThreshold = 20;
 
 /* Enums -------------------------------------------------------------- */
 
-enum RentalPhase {
-  idle,
-  starting,
-  running,
-  paused,
-  stopping,
-  ended,
-}
+enum RentalPhase { idle, starting, running, paused, stopping, ended }
 
 /* Typedef / Function types ------------------------------------------ */
 /* Public classes ----------------------------------------------------- */
@@ -288,13 +281,15 @@ class MobileRideProvider extends ChangeNotifier {
   void _onPauseSuccess() {
     phase = RentalPhase.paused;
     _countdownBaseSeconds = _liveRemainingSeconds;
-    _timer?.cancel();
+    _startedAt = DateTime.now();
+    _restartTicker();
     _startPauseTimeout();
     notifyListeners();
   }
 
   void _onResumeSuccess() {
     phase = RentalPhase.running;
+    _countdownBaseSeconds = _liveRemainingSeconds;
     _startedAt = DateTime.now();
     _pauseTimeoutTimer?.cancel();
     _pauseTimeoutTimer = null;
@@ -344,7 +339,10 @@ class MobileRideProvider extends ChangeNotifier {
     final DateTime? started = _startedAt;
     if (started == null) return;
     final int elapsed = DateTime.now().difference(started).inSeconds;
-    final int remaining = _countdownBaseSeconds - elapsed;
+    final int consumed = phase == RentalPhase.paused
+        ? (elapsed * FeatureConfig.rentalPausePriceFactorPercent) ~/ 100
+        : elapsed;
+    final int remaining = _countdownBaseSeconds - consumed;
     _liveRemainingSeconds = remaining
         .clamp(0, FeatureConfig.rentalRemainingSecondsMax)
         .toInt();
