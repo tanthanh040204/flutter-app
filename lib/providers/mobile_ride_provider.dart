@@ -135,7 +135,7 @@ class MobileRideProvider extends ChangeNotifier {
 
     final bool ok = _mqtt.publish(
       MqttTopics.appToWeb(bikeId),
-      ProtocolCodec.build(kCmdStartRental, [wireUserId, _selectedRentalHours.toString()]),
+      ProtocolCodec.build(kCmdStartRental, [wireUserId]),
     );
     if (!ok) {
       if (FeatureConfig.debugRideLog) {
