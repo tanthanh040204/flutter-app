@@ -21,10 +21,12 @@ import '../models/rental_vehicle.dart';
 import '../models/station.dart';
 import '../models/user_notice.dart';
 import '../models/user_ride_session.dart';
+import 'user_wire_id.dart';
 
 /* Constants ---------------------------------------------------------- */
 /* --- Firestore collection names ---------------------------------- */
 const String kColUsers = 'users';
+const String kColRentalUsers = 'rental_users';
 const String kColStations = 'stations';
 const String kColRideSessions = 'ride_sessions';
 const String kColVehicles = 'vehicles';
@@ -450,7 +452,7 @@ class MobileUserRepo {
         .doc(uid);
     final DocumentSnapshot<Map<String, dynamic>> snap = await ref.get();
     if (snap.exists) {
-      return _profileFromDoc(snap);
+      return _syncBalanceFromRentalUsers(_profileFromDoc(snap));
     }
 
     final MobileUserProfile profile = MobileUserProfile(
@@ -470,6 +472,31 @@ class MobileUserRepo {
     );
     await _saveUserProfile(profile);
     return profile;
+  }
+
+  // Initially used to sync balance from legacy rental_users collection
+  Future<MobileUserProfile> _syncBalanceFromRentalUsers(
+    MobileUserProfile profile,
+  ) async {
+    final FirebaseFirestore? db = _db;
+    if (db == null) return profile;
+    final String wireUserId = buildWireUserId(
+      uid: profile.uid,
+      phone: profile.phone,
+      email: profile.email,
+    );
+    final DocumentSnapshot<Map<String, dynamic>> snap = await db
+        .collection(kColRentalUsers)
+        .doc(wireUserId)
+        .get();
+    if (!snap.exists) return profile;
+    final int tokens = _asInt(snap.data()?['tokens'], profile.balance);
+    if (tokens == profile.balance) return profile;
+    await db.collection(kColUsers).doc(profile.uid).set({
+      'balance': tokens,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    return profile.copyWith(balance: tokens);
   }
 
   Stream<MobileUserProfile?> watchUserProfile(String uid) {
@@ -794,6 +821,14 @@ class MobileUserRepo {
         .collection(kColVehicles)
         .doc(vehicle.id);
     final DocumentReference userRef = _db!.collection(kColUsers).doc(user.uid);
+    final String wireUserId = buildWireUserId(
+      uid: user.uid,
+      phone: user.phone,
+      email: user.email,
+    );
+    final DocumentReference rentalUserRef = _db!
+        .collection(kColRentalUsers)
+        .doc(wireUserId);
     final DocumentReference commandRef = _db!
         .collection(kColVehicleCommands)
         .doc();
@@ -843,6 +878,12 @@ class MobileUserRepo {
       'balance': user.balance - pricing.totalRequired,
       'depositLocked': pricing.depositAmount,
       'currentSessionId': sessionId,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    batch.set(rentalUserRef, {
+      'userId': wireUserId,
+      'tokens': user.balance - pricing.totalRequired,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
@@ -1022,6 +1063,19 @@ class MobileUserRepo {
       'currentSessionId': profile.currentSessionId,
       'createdAt': Timestamp.fromDate(profile.createdAt),
       'lastLoginAt': Timestamp.fromDate(profile.lastLoginAt),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    final String wireUserId = buildWireUserId(
+      uid: profile.uid,
+      phone: profile.phone,
+      email: profile.email,
+    );
+    await db.collection(kColRentalUsers).doc(wireUserId).set({
+      'userId': wireUserId,
+      'tokens': profile.balance,
+      'displayName': profile.fullName,
+      'isActive': profile.isActive,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
