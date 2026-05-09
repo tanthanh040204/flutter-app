@@ -32,22 +32,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _index = 0;
 
   List<_OnboardData> _pages(AppStrings t) => [
-        _OnboardData(
-          title: t.onboardingTitle1,
-          desc: t.onboardingDesc1,
-          icon: Icons.car_rental_rounded,
-        ),
-        _OnboardData(
-          title: t.onboardingTitle2,
-          desc: t.onboardingDesc2,
-          icon: Icons.qr_code_scanner,
-        ),
-        _OnboardData(
-          title: t.onboardingTitle3,
-          desc: t.onboardingDesc3,
-          icon: Icons.directions_car,
-        ),
-      ];
+    _OnboardData(
+      title: t.onboardingTitle1,
+      desc: t.onboardingDesc1,
+      icon: Icons.directions_bike_rounded,
+    ),
+    _OnboardData(
+      title: t.onboardingTitle2,
+      desc: t.onboardingDesc2,
+      icon: Icons.qr_code_scanner,
+    ),
+    _OnboardData(
+      title: t.onboardingTitle3,
+      desc: t.onboardingDesc3,
+      icon: Icons.pedal_bike_rounded,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -118,33 +118,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   );
                 }),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: _index == 0
-                          ? null
-                          : () => _controller.previousPage(
-                              duration: kPageAnimDuration,
-                              curve: Curves.easeOut,
-                            ),
-                      child: Text(t.previous),
-                    ),
-                  ),
-                  Expanded(
-                    child: TextButton(
-                      onPressed: _index == pages.length - 1
-                          ? null
-                          : () => _controller.nextPage(
-                              duration: kPageAnimDuration,
-                              curve: Curves.easeOut,
-                            ),
-                      child: Text(t.next),
-                    ),
-                  ),
-                ],
               ),
               const SizedBox(height: 16),
               SizedBox(
