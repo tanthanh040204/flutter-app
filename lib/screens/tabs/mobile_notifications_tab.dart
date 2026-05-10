@@ -7,6 +7,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_strings.dart';
+import '../../models/mobile_history_route.dart';
 import '../../providers/mobile_notice_provider.dart';
 import '../route_view_screen.dart';
 
@@ -26,10 +28,11 @@ class MobileNotificationsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     final MobileNoticeProvider provider = context.watch<MobileNoticeProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(title: Text(t.notifications)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -44,9 +47,9 @@ class MobileNotificationsTab extends StatelessWidget {
           ),
           if (provider.routes.isNotEmpty) ...[
             const SizedBox(height: 12),
-            const Text(
-              'Routes',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            Text(
+              t.routes,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             ...provider.routes.map(
@@ -62,7 +65,7 @@ class MobileNotificationsTab extends StatelessWidget {
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(route.buttonLabel),
+                    child: Text(_routeButtonLabel(route, t)),
                   ),
                 ),
               ),
@@ -72,6 +75,20 @@ class MobileNotificationsTab extends StatelessWidget {
       ),
     );
   }
+
+
+  String _routeButtonLabel(MobileHistoryRoute route, AppStrings t) {
+    final String start =
+        '${_two(route.startAt.hour)}:${_two(route.startAt.minute)}'
+        ' ${_two(route.startAt.day)}/${_two(route.startAt.month)}';
+    if (route.endAt == null) return '${t.route} $start';
+    final String end =
+        '${_two(route.endAt!.hour)}:${_two(route.endAt!.minute)}'
+        ' ${_two(route.endAt!.day)}/${_two(route.endAt!.month)}';
+    return t.routeFromTo(start, end);
+  }
+
+  String _two(int n) => n.toString().padLeft(2, '0');
 
   IconData _iconFor(String type) {
     switch (type) {

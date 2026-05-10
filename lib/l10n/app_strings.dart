@@ -137,6 +137,8 @@ class AppStrings {
   String bikeBatteryText(String status, int batteryPercent) => vi ? '$status - $batteryPercent% pin' : '$status - $batteryPercent% battery';
 
   String get routes => vi ? 'Lộ trình' : 'Routes';
+  String get route => vi ? 'Lộ trình' : 'Route';
+  String routeFromTo(String start, String end) => vi ? 'Lộ trình từ $start đến $end' : 'Route $start to $end';
 
   String get pricePerHour => vi ? 'Giá thuê 1 giờ' : 'Price per hour';
   String get minimumBalance => vi ? 'Số dư tối thiểu để bắt đầu' : 'Minimum balance to start';

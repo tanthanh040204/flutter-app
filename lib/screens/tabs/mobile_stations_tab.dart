@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../models/station.dart';
 import '../../providers/mobile_stations_provider.dart';
 
@@ -30,6 +31,7 @@ class MobileStationsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     final MobileStationsProvider stationsProvider = context
         .watch<MobileStationsProvider>();
     final List<BikeStation> stations = stationsProvider.stations;
@@ -40,7 +42,7 @@ class MobileStationsTab extends StatelessWidget {
         : userPoint;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Stations')),
+      appBar: AppBar(title: Text(t.stations)),
       body: FlutterMap(
         options: MapOptions(initialCenter: center, initialZoom: 15.2),
         children: [
@@ -79,7 +81,7 @@ class MobileStationsTab extends StatelessWidget {
         onPressed: () =>
             context.read<MobileStationsProvider>().refreshUserLocation(),
         icon: const Icon(Icons.refresh),
-        label: const Text('Refresh'),
+        label: Text(t.refresh),
       ),
     );
   }
@@ -97,108 +99,142 @@ class MobileStationsTab extends StatelessWidget {
         initialChildSize: 0.55,
         minChildSize: 0.35,
         maxChildSize: 0.85,
-        builder: (context, scrollController) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: ListView(
-            controller: scrollController,
-            children: [
-              Text(
-                station.name,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: kAccentColor,
+        builder: (context, scrollController) {
+          final AppStrings t = context.tr;
+
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: ListView(
+              controller: scrollController,
+              children: [
+                Text(
+                  station.name,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: kAccentColor,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                station.address,
-                style: const TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StationStat(
-                      label: 'Bikes left',
-                      value: station.bikeCount.toString(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _StationStat(
-                      label: 'Free slots',
-                      value: station.availableSlots.toString(),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () async {
-                    final Uri uri = Uri.parse(station.googleMapUrl);
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  },
-                  icon: const Icon(Icons.map_outlined),
-                  label: const Text('Open in Google Maps'),
+                const SizedBox(height: 8),
+                Text(
+                  station.address,
+                  style: const TextStyle(fontSize: 16, color: Colors.black54),
                 ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Bikes at this station',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 10),
-              ...station.vehicles.map(
-                (bike) => Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: Colors.grey.shade50,
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.pedal_bike,
-                        color: kAccentColor,
-                        size: 28,
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StationStat(
+                        label: t.bikesAvailable,
+                        value: station.bikeCount.toString(),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              bike.code,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${bike.status} - ${bike.batteryPercent}% battery',
-                              style: TextStyle(
-                                color: _batteryColor(bike.batteryPercent),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StationStat(
+                        label: t.freeSlots,
+                        value: station.availableSlots.toString(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      final Uri uri = Uri.parse(station.googleMapUrl);
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    },
+                    icon: const Icon(Icons.map_outlined),
+                    label: Text(t.openGoogleMaps),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  t.bikesAtStation,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...station.vehicles.map(
+                  (bike) => Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.grey.shade50,
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.pedal_bike,
+                          color: kAccentColor,
+                          size: 28,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                bike.code,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                t.bikeBatteryText(
+                                  _localizedBikeStatus(t, bike.status),
+                                  bike.batteryPercent,
+                                ),
+                                style: TextStyle(
+                                  color: _batteryColor(bike.batteryPercent),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
+  }
+
+  String _localizedBikeStatus(AppStrings t, String status) {
+    if (!t.vi) return status;
+
+    switch (status.trim().toLowerCase()) {
+      case 'available':
+      case 'ready':
+        return 'Sẵn sàng';
+      case 'locked':
+        return 'Đang khóa';
+      case 'unlocked':
+        return 'Đã mở khóa';
+      case 'in_use':
+      case 'in use':
+      case 'using':
+        return 'Đang sử dụng';
+      case 'maintenance':
+        return 'Bảo trì';
+      case 'low battery':
+        return 'Pin yếu';
+      default:
+        return status;
+    }
   }
 
   Color _batteryColor(int percent) {
