@@ -411,6 +411,24 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               color: kHeaderGradientStart,
             ),
           ),
+          if (ride.isOverdue) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3CD),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFFFC107)),
+              ),
+              child: Text(
+                'Quá hạn ${_formatOverdue(ride.overdueSeconds)}',
+                style: const TextStyle(
+                  color: Color(0xFF8A6D00),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
           Text(
             ride.isPaused
@@ -453,6 +471,12 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     final String m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
     final String s = (seconds % 60).toString().padLeft(2, '0');
     return '$h:$m:$s';
+  }
+
+  String _formatOverdue(int seconds) {
+    final int h = seconds ~/ 3600;
+    final int m = (seconds % 3600) ~/ 60;
+    return '${h}g${m.toString().padLeft(2, '0')}p';
   }
 }
 

@@ -23,6 +23,9 @@ const String kEvtEndRental = 'END_RENTAL';
 const String kEvtRentalErr = 'RENTAL_ERR';
 const String kEvtWarnLowBalance = 'WARN_LOW_BALANCE';
 const String kEvtWarnOutOfBalance = 'WARN_OUT_OF_BALANCE';
+const String kEvtWarnDebt = 'WARN_DEBT';
+const String kEvtRentalNotiLimit = 'RENTAL_NOTI_LIMIT';
+const String kEvtDebtClear = 'DEBT_CLEAR';
 const String kEvtRespAddTokenSuccess = 'RESP_ADD_TOKEN_SUCCESS';
 const String kEvtRespAddTokenError = 'RESP_ADD_TOKEN_ERROR';
 

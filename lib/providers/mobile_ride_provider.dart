@@ -47,15 +47,17 @@ class MobileRideProvider extends ChangeNotifier {
   String? _wireUserId;
   String? _bikeId;
   DateTime? _startedAt;
-  int _liveRemainingSeconds = 0;
-  int _countdownBaseSeconds = 3600;
+  // Total bill = (initial hours + extra hours) * pricePerHour
+  int _consumedAtPhaseStart = 0;
   int _selectedRentalHours = 1;
 
   /* --- public fields ------------------------------------------- */
   RentalPhase phase = RentalPhase.idle;
   RentalBill? lastBill;
   String? lastError;
-  String? warning; /* WARN_LOW_BALANCE / WARN_OUT_OF_BALANCE  */
+  String?
+  warning; /* WARN_LOW_BALANCE / WARN_OUT_OF_BALANCE / WARN_DEBT / RENTAL_NOTI_LIMIT */
+  int debtAmount = 0;
   PricingConfig pricing = const PricingConfig(
     pricePerHour: kDefaultPricePerHour,
     depositAmount: kDefaultDepositAmount,
@@ -64,7 +66,32 @@ class MobileRideProvider extends ChangeNotifier {
   );
 
   /* --- public getters ------------------------------------------ */
-  int get liveRemainingSeconds => _liveRemainingSeconds;
+  /* Countdown shown to the user. Before overdue: time left in the
+   * pre-paid window. After overdue: time left in the current 1-hour
+   * loop (resets every hour). */
+  int get liveRemainingSeconds {
+    final int total = _totalConsumedSeconds();
+    final int selected = _selectedRentalHours * 3600;
+    if (total < selected) {
+      return (selected - total).clamp(
+        0,
+        FeatureConfig.rentalRemainingSecondsMax,
+      );
+    }
+    final int overdue = total - selected;
+    return 3600 - (overdue % 3600);
+  }
+
+  /* Total seconds the rental has gone past the originally-selected
+   * window. 0 while still within the pre-paid hours. */
+  int get overdueSeconds {
+    final int total = _totalConsumedSeconds();
+    final int selected = _selectedRentalHours * 3600;
+    return total > selected ? total - selected : 0;
+  }
+
+  bool get isOverdue => overdueSeconds > 0;
+
   int get selectedRentalHours => _selectedRentalHours;
   int get selectedUsageFee => pricing.pricePerHour * _selectedRentalHours;
   int get selectedTotalRequired => selectedUsageFee + pricing.depositAmount;
@@ -210,8 +237,7 @@ class MobileRideProvider extends ChangeNotifier {
     }
     _bikeId = null;
     _startedAt = null;
-    _liveRemainingSeconds = 0;
-    _countdownBaseSeconds = _selectedRentalHours * 3600;
+    _consumedAtPhaseStart = 0;
     phase = RentalPhase.idle;
     lastBill = null;
     lastError = null;
@@ -263,6 +289,26 @@ class MobileRideProvider extends ChangeNotifier {
         warning = kEvtWarnOutOfBalance;
         notifyListeners();
         break;
+      case kEvtWarnDebt:
+        /* WARN_DEBT=<total_debt_tokens> */
+        warning = kEvtWarnDebt;
+        debtAmount = int.tryParse(msg.argAt(0) ?? '') ?? debtAmount;
+        notifyListeners();
+        break;
+      case kEvtRentalNotiLimit:
+        /* RENTAL_NOTI_LIMIT[=<total_debt_tokens>] — account locked. */
+        warning = kEvtRentalNotiLimit;
+        debtAmount = int.tryParse(msg.argAt(0) ?? '') ?? debtAmount;
+        notifyListeners();
+        break;
+      case kEvtDebtClear:
+        /* DEBT_CLEAR — debt fully repaid mid-rental, dismiss debt UI. */
+        if (warning == kEvtWarnDebt || warning == kEvtRentalNotiLimit) {
+          warning = null;
+        }
+        debtAmount = 0;
+        notifyListeners();
+        break;
     }
   }
 
@@ -272,15 +318,16 @@ class MobileRideProvider extends ChangeNotifier {
     _startedAt = startTimeStr != null ? DateTime.tryParse(startTimeStr) : null;
     _startedAt ??= DateTime.now();
     phase = RentalPhase.running;
-    _countdownBaseSeconds = _selectedRentalHours * 3600;
-    _liveRemainingSeconds = _countdownBaseSeconds;
+    _consumedAtPhaseStart = 0;
     _restartTicker();
     notifyListeners();
   }
 
   void _onPauseSuccess() {
+    /* Snapshot the running total BEFORE flipping phase, so the new
+     * phase's elapsed accumulates against an accurate baseline. */
+    _consumedAtPhaseStart = _totalConsumedSeconds();
     phase = RentalPhase.paused;
-    _countdownBaseSeconds = _liveRemainingSeconds;
     _startedAt = DateTime.now();
     _restartTicker();
     _startPauseTimeout();
@@ -288,8 +335,8 @@ class MobileRideProvider extends ChangeNotifier {
   }
 
   void _onResumeSuccess() {
+    _consumedAtPhaseStart = _totalConsumedSeconds();
     phase = RentalPhase.running;
-    _countdownBaseSeconds = _liveRemainingSeconds;
     _startedAt = DateTime.now();
     _pauseTimeoutTimer?.cancel();
     _pauseTimeoutTimer = null;
@@ -336,17 +383,20 @@ class MobileRideProvider extends ChangeNotifier {
   }
 
   void _tick() {
-    final DateTime? started = _startedAt;
-    if (started == null) return;
-    final int elapsed = DateTime.now().difference(started).inSeconds;
-    final int consumed = phase == RentalPhase.paused
-        ? (elapsed * FeatureConfig.rentalPausePriceFactorPercent) ~/ 100
-        : elapsed;
-    final int remaining = _countdownBaseSeconds - consumed;
-    _liveRemainingSeconds = remaining
-        .clamp(0, FeatureConfig.rentalRemainingSecondsMax)
-        .toInt();
+    if (_startedAt == null) return;
+    /* The countdown / overdue values are computed lazily from
+     * `_totalConsumedSeconds()` — the tick just nudges UI rebuilds. */
     notifyListeners();
+  }
+
+  int _totalConsumedSeconds() {
+    final DateTime? started = _startedAt;
+    if (started == null) return _consumedAtPhaseStart;
+    final int elapsedReal = DateTime.now().difference(started).inSeconds;
+    final int factor = phase == RentalPhase.paused
+        ? FeatureConfig.rentalPausePriceFactorPercent
+        : 100;
+    return _consumedAtPhaseStart + (elapsedReal * factor) ~/ 100;
   }
 
   void _startPauseTimeout() {
