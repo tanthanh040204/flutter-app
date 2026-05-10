@@ -102,7 +102,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
             user.fullName,
             user.email ?? user.phone ?? user.employeeCode,
             user.balance,
-            user.depositLocked,
+            ride.debtAmount,
             money,
           ),
           const SizedBox(height: 16),
@@ -146,7 +146,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     String fullName,
     String userCode,
     int balance,
-    int depositLocked,
+    int debtAmount,
     NumberFormat money,
   ) {
     return Container(
@@ -185,8 +185,8 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               const SizedBox(width: 12),
               Expanded(
                 child: _QuickCard(
-                  title: context.tr.deposit,
-                  value: money.format(depositLocked),
+                  title: context.tr.debt,
+                  value: money.format(debtAmount),
                 ),
               ),
             ],

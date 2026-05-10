@@ -73,6 +73,7 @@ class AppStrings {
   String hello(String name) => vi ? 'Xin chào, $name' : 'Hello, $name';
   String get balance => vi ? 'Số dư' : 'Balance';
   String get deposit => vi ? 'Tiền cọc' : 'Deposit';
+  String get debt => vi ? 'Tiền nợ' : 'Debt';
   String get topUp => vi ? 'Nạp tiền' : 'Top up';
   String get scanQr => vi ? 'Quét QR' : 'Scan QR';
   String get enterRentalTime => vi ? 'Nhập thời gian thuê' : 'Enter rental time';
