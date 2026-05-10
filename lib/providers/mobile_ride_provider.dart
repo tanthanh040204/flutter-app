@@ -89,6 +89,9 @@ class MobileRideProvider extends ChangeNotifier {
 
   bool get isOverdue => overdueSeconds > 0;
 
+  int get blocksConsumed =>
+      _totalConsumedSeconds() ~/ FeatureConfig.rentalBillingBlockSeconds;
+
   int get selectedRentalHours => _selectedRentalHours;
   int get selectedUsageFee => pricing.pricePerHour * _selectedRentalHours;
   int get selectedTotalRequired => selectedUsageFee + pricing.depositAmount;
@@ -208,6 +211,18 @@ class MobileRideProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearDebt() {
+    final bool hadDebt = debtAmount != 0 ||
+        warning == kEvtWarnDebt ||
+        warning == kEvtRentalNotiLimit;
+    if (!hadDebt) return;
+    if (warning == kEvtWarnDebt || warning == kEvtRentalNotiLimit) {
+      warning = null;
+    }
+    debtAmount = 0;
+    notifyListeners();
+  }
+
   void acknowledgeBill() {
     lastBill = null;
     phase = RentalPhase.idle;
@@ -300,11 +315,7 @@ class MobileRideProvider extends ChangeNotifier {
         break;
       case kEvtDebtClear:
         /* DEBT_CLEAR — debt fully repaid mid-rental, dismiss debt UI. */
-        if (warning == kEvtWarnDebt || warning == kEvtRentalNotiLimit) {
-          warning = null;
-        }
-        debtAmount = 0;
-        notifyListeners();
+        clearDebt();
         break;
     }
   }

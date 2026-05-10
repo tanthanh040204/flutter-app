@@ -39,7 +39,10 @@ class MobileHomeTab extends StatefulWidget {
 /* Private classes ---------------------------------------------------- */
 class _MobileHomeTabState extends State<MobileHomeTab> {
   bool _billShown = false;
-  DateTime? _lastDeductedBillAt;
+  int _lastBlocksDeducted = 0;
+  /* Set after the deposit is debited on the first running transition.
+   * Prevents resume (paused → running) from re-charging it. */
+  bool _startDeductionDone = false;
   late final TextEditingController _hoursCtrl;
 
   @override
@@ -59,9 +62,9 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     final int? hours = int.tryParse(_hoursCtrl.text.trim());
 
     if (hours == null || hours <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.readTr.invalidHours)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.readTr.invalidHours)));
       return false;
     }
 
@@ -89,10 +92,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
       appBar: AppBar(
         title: Text(t.home),
         actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: LanguageSwitch(),
-          ),
+          Padding(padding: EdgeInsets.only(right: 12), child: LanguageSwitch()),
         ],
       ),
       body: ListView(
@@ -126,11 +126,25 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     MobileAuthProvider auth,
     MobileRideProvider ride,
   ) {
+    if (ride.phase == RentalPhase.running && !_startDeductionDone) {
+      final int deposit = ride.pricing.depositAmount;
+      _startDeductionDone = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        auth.deductLocalBalance(deposit);
+      });
+    }
+
+    if (ride.hasActiveSession && ride.blocksConsumed > _lastBlocksDeducted) {
+      final int newBlocks = ride.blocksConsumed - _lastBlocksDeducted;
+      final int amount = newBlocks * ride.pricing.pricePerHour;
+      _lastBlocksDeducted = ride.blocksConsumed;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        auth.deductLocalBalance(amount);
+      });
+    }
     if (ride.isEnded && ride.lastBill != null && !_billShown) {
-      if (_lastDeductedBillAt != ride.lastBill!.endedAt) {
-        auth.deductLocalBalance(ride.lastBill!.amount);
-        _lastDeductedBillAt = ride.lastBill!.endedAt;
-      }
       _billShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -139,7 +153,12 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
         );
       });
     }
-    if (!ride.isEnded) _billShown = false;
+
+    if (ride.phase == RentalPhase.idle) {
+      if (_lastBlocksDeducted != 0) _lastBlocksDeducted = 0;
+      if (_billShown) _billShown = false;
+      if (_startDeductionDone) _startDeductionDone = false;
+    }
   }
 
   Widget _buildHeader(
@@ -169,10 +188,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            userCode,
-            style: const TextStyle(color: Colors.white70),
-          ),
+          Text(userCode, style: const TextStyle(color: Colors.white70)),
           const SizedBox(height: 18),
           Row(
             children: [
@@ -272,9 +288,9 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
           child: FilledButton.tonalIcon(
             onPressed: () {
               if (!_applyHours(context)) return;
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const QrScanScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const QrScanScreen()));
             },
             icon: const Icon(Icons.qr_code_scanner),
             label: Text(t.scanQr),
@@ -354,10 +370,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
           children: [
             Text(
               context.tr.noRideTitle,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(context.tr.noRideDesc),

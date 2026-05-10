@@ -11,6 +11,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/error_codes.dart';
 import '../providers/mobile_auth_provider.dart';
+import '../providers/mobile_ride_provider.dart';
 import '../providers/mobile_wallet_provider.dart';
 import '../config/feature_conf.dart';
 
@@ -154,6 +155,7 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<MobileAuthProvider>().updateLocalBalance(balance);
+      context.read<MobileRideProvider>().clearDebt();
     });
   }
 }
