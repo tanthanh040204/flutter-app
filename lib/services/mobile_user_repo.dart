@@ -13,6 +13,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../config/feature_conf.dart';
 import '../models/mobile_history_route.dart';
 import '../models/mobile_user_profile.dart';
 import '../models/parking_zone.dart';
@@ -39,13 +40,6 @@ const String kColAppConfigs = 'app_configs';
 const String kColParkingZones = 'parking_zones';
 const String kColHistoryRoutes = 'history_routes';
 const String kDocPricing = 'pricing';
-
-/* --- Pricing defaults ------------------------------------------- */
-const int kDefaultPricePerHour = 10000;
-const int kDefaultDepositAmount = 10000;
-const int kDefaultMinimumRequiredBalance = 20000;
-const int kDefaultLowBatteryThreshold = 20;
-const int kInitialRemainingSeconds = 3600;
 
 /* --- Balance defaults ------------------------------------------- */
 const int kDemoSeedBalance = 120000;
@@ -169,10 +163,10 @@ class MobileUserRepo {
   static final DateTime _bootTime = DateTime.now();
 
   final PricingConfig _demoPricing = const PricingConfig(
-    pricePerHour: kDefaultPricePerHour,
-    depositAmount: kDefaultDepositAmount,
-    minimumRequiredBalance: kDefaultMinimumRequiredBalance,
-    lowBatteryThreshold: kDefaultLowBatteryThreshold,
+    pricePerHour: FeatureConfig.rentalDefaultPricePerHour,
+    depositAmount: FeatureConfig.rentalDefaultDepositAmount,
+    minimumRequiredBalance: FeatureConfig.rentalDefaultMinimumRequiredBalance,
+    lowBatteryThreshold: FeatureConfig.rentalDefaultLowBatteryThreshold,
   );
 
   /* ================================================================
@@ -534,15 +528,21 @@ class MobileUserRepo {
     ) {
       final Map<String, dynamic> m = doc.data() ?? {};
       return PricingConfig(
-        pricePerHour: _asInt(m['pricePerHour'], kDefaultPricePerHour),
-        depositAmount: _asInt(m['depositAmount'], kDefaultDepositAmount),
+        pricePerHour: _asInt(
+          m['pricePerHour'],
+          FeatureConfig.rentalDefaultPricePerHour,
+        ),
+        depositAmount: _asInt(
+          m['depositAmount'],
+          FeatureConfig.rentalDefaultDepositAmount,
+        ),
         minimumRequiredBalance: _asInt(
           m['minimumRequiredBalance'],
-          kDefaultMinimumRequiredBalance,
+          FeatureConfig.rentalDefaultMinimumRequiredBalance,
         ),
         lowBatteryThreshold: _asInt(
           m['lowBatteryThreshold'],
-          kDefaultLowBatteryThreshold,
+          FeatureConfig.rentalDefaultLowBatteryThreshold,
         ),
       );
     });
@@ -774,7 +774,7 @@ class MobileUserRepo {
         mainAmountUsed: pricing.pricePerHour,
         depositUsed: 0,
         remainingBalanceSnapshot: user.balance - pricing.totalRequired,
-        remainingSeconds: kInitialRemainingSeconds,
+        remainingSeconds: FeatureConfig.rentalBillingBlockSeconds,
         canUnlock: true,
         routeIds: const [],
       );
@@ -857,7 +857,7 @@ class MobileUserRepo {
       'mainAmountUsed': pricing.pricePerHour,
       'depositUsed': 0,
       'remainingBalanceSnapshot': user.balance - pricing.totalRequired,
-      'remainingSeconds': kInitialRemainingSeconds,
+      'remainingSeconds': FeatureConfig.rentalBillingBlockSeconds,
       'canUnlock': true,
       'routeIds': [],
       'createdAt': FieldValue.serverTimestamp(),
@@ -1243,8 +1243,14 @@ class MobileUserRepo {
       pausedAt: m['pausedAt'] == null ? null : _asDate(m['pausedAt']),
       endedAt: m['endedAt'] == null ? null : _asDate(m['endedAt']),
       lastHeartbeatAt: _asDate(m['lastHeartbeatAt']),
-      pricePerHour: _asInt(m['pricePerHour'], kDefaultPricePerHour),
-      depositAmount: _asInt(m['depositAmount'], kDefaultDepositAmount),
+      pricePerHour: _asInt(
+        m['pricePerHour'],
+        FeatureConfig.rentalDefaultPricePerHour,
+      ),
+      depositAmount: _asInt(
+        m['depositAmount'],
+        FeatureConfig.rentalDefaultDepositAmount,
+      ),
       mainAmountUsed: _asInt(m['mainAmountUsed'], 0),
       depositUsed: _asInt(m['depositUsed'], 0),
       remainingBalanceSnapshot: _asInt(m['remainingBalanceSnapshot'], 0),

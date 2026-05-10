@@ -26,9 +26,17 @@ class FeatureConfig {
   static const bool debugWalletLog = true;
 
   /* --- Rental tunables ----------------------------------------- */
+  static const int rentalBillingBlockSeconds = 3600;
   static const int rentalPauseTimeoutSeconds = 3600;
   static const int rentalPausePriceFactorPercent = 50;
   static const int rentalRemainingSecondsMax = 999999;
+
+  /* --- Rental pricing defaults --------------------------------- */
+  /* Seed values for PricingConfig before Firestore overrides land. */
+  static const int rentalDefaultPricePerHour = 10000;
+  static const int rentalDefaultDepositAmount = 10000;
+  static const int rentalDefaultMinimumRequiredBalance = 20000;
+  static const int rentalDefaultLowBatteryThreshold = 20;
 
   /* --- Wallet tunables ----------------------------------------- */
   static const int topupResponseTimeoutSeconds = 20;

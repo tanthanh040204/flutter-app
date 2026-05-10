@@ -21,11 +21,6 @@ import '../services/user_wire_id.dart';
 import 'mobile_telemetry_provider.dart';
 
 /* Constants ---------------------------------------------------------- */
-const int kDefaultPricePerHour = 10000;
-const int kDefaultDepositAmount = 10000;
-const int kDefaultMinimumRequiredBalance = 20000;
-const int kDefaultLowBatteryThreshold = 20;
-
 /* Enums -------------------------------------------------------------- */
 
 enum RentalPhase { idle, starting, running, paused, stopping, ended }
@@ -59,19 +54,20 @@ class MobileRideProvider extends ChangeNotifier {
   warning; /* WARN_LOW_BALANCE / WARN_OUT_OF_BALANCE / WARN_DEBT / RENTAL_NOTI_LIMIT */
   int debtAmount = 0;
   PricingConfig pricing = const PricingConfig(
-    pricePerHour: kDefaultPricePerHour,
-    depositAmount: kDefaultDepositAmount,
-    minimumRequiredBalance: kDefaultMinimumRequiredBalance,
-    lowBatteryThreshold: kDefaultLowBatteryThreshold,
+    pricePerHour: FeatureConfig.rentalDefaultPricePerHour,
+    depositAmount: FeatureConfig.rentalDefaultDepositAmount,
+    minimumRequiredBalance: FeatureConfig.rentalDefaultMinimumRequiredBalance,
+    lowBatteryThreshold: FeatureConfig.rentalDefaultLowBatteryThreshold,
   );
 
   /* --- public getters ------------------------------------------ */
   /* Countdown shown to the user. Before overdue: time left in the
-   * pre-paid window. After overdue: time left in the current 1-hour
-   * loop (resets every hour). */
+   * pre-paid window. After overdue: time left in the current billing
+   * block (resets every block). */
   int get liveRemainingSeconds {
     final int total = _totalConsumedSeconds();
-    final int selected = _selectedRentalHours * 3600;
+    final int block = FeatureConfig.rentalBillingBlockSeconds;
+    final int selected = _selectedRentalHours * block;
     if (total < selected) {
       return (selected - total).clamp(
         0,
@@ -79,14 +75,15 @@ class MobileRideProvider extends ChangeNotifier {
       );
     }
     final int overdue = total - selected;
-    return 3600 - (overdue % 3600);
+    return block - (overdue % block);
   }
 
   /* Total seconds the rental has gone past the originally-selected
-   * window. 0 while still within the pre-paid hours. */
+   * window. 0 while still within the pre-paid blocks. */
   int get overdueSeconds {
     final int total = _totalConsumedSeconds();
-    final int selected = _selectedRentalHours * 3600;
+    final int selected =
+        _selectedRentalHours * FeatureConfig.rentalBillingBlockSeconds;
     return total > selected ? total - selected : 0;
   }
 
