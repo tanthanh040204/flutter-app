@@ -13,6 +13,7 @@ import '../../providers/app_language_provider.dart';
 import '../../providers/mobile_auth_provider.dart';
 import '../change_password_screen.dart';
 import '../pricing_screen.dart';
+import '../usage_guide_screen.dart';
 
 /* Constants ---------------------------------------------------------- */
 const Color kHeaderGradientStart = Color(0xFF1557FF);
@@ -149,6 +150,17 @@ class MobileMoreTab extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const PricingScreen()),
+              );
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.menu_book_outlined),
+            title: Text(t.usageGuideTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const UsageGuideScreen()),
               );
             },
           ),
