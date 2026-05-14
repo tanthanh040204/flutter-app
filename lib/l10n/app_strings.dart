@@ -158,4 +158,54 @@ class AppStrings {
   String extraFee(String amount) => vi ? 'Tiền cần trừ thêm: $amount' : 'Extra fee: $amount';
   String get confirmExtend => vi ? 'Xác nhận thuê thêm' : 'Confirm extension';
   String extendedRide(int hours) => vi ? 'Đã cộng thêm $hours giờ sử dụng.' : 'Added $hours hour(s) to your ride.';
+
+  String get dailyBriefingTitle => vi ? 'Tin giao thông & thời tiết hôm nay' : 'Today traffic & weather';
+  String dailyBriefingSubtitle(String date) => vi
+      ? 'Cập nhật mỗi ngày • $date'
+      : 'Updated daily • $date';
+  String get loadingDailyNews => vi ? 'Đang tải bản tin mới...' : 'Loading latest updates...';
+  String get liveUpdated => vi ? 'Tin mới từ nguồn online' : 'Live from online source';
+  String get dailyUpdated => vi ? 'Gợi ý thay đổi theo ngày' : 'Daily rotating tip';
+  String get readMore => vi ? 'Đọc thêm' : 'Read more';
+  String get traffic => vi ? 'Giao thông' : 'Traffic';
+  String get weather => vi ? 'Thời tiết' : 'Weather';
+  String get openTrafficNews => vi ? 'Tin giao thông' : 'Traffic news';
+  String get openWeatherForecast => vi ? 'Dự báo thời tiết' : 'Weather forecast';
+  String get noticeOfferTitle => vi ? 'Thông báo & ưu đãi hôm nay' : 'Today notices & offers';
+
+  String get usageGuideTitle => vi ? 'Hướng dẫn sử dụng' : 'How to use';
+  String get usageGuideCardDesc => vi
+      ? 'Xem nhanh các bước thuê xe, quét QR, theo dõi chuyến đi và trả xe.'
+      : 'Quick steps for renting, scanning QR, tracking your ride, and returning the bike.';
+  String get usageGuideIntro => vi
+      ? 'Làm theo các bước dưới đây để thuê xe đúng quy trình và tránh lỗi phát sinh không đáng có.'
+      : 'Follow these steps to rent a bike correctly and avoid unnecessary errors.';
+  String get usageGuideTip => vi
+      ? 'Mẹo nhỏ: trước khi quét QR, hãy kiểm tra số dư, thời gian thuê, pin xe và trạm trả xe. Bốn việc nhỏ, bớt được một đống phiền phức.'
+      : 'Tip: before scanning QR, check your balance, rental time, bike battery, and return station. Four small checks, fewer problems.';
+  String get guideStepLoginTitle => vi ? 'Đăng nhập hoặc đăng ký' : 'Log in or register';
+  String get guideStepLoginBody => vi
+      ? 'Dùng email và mật khẩu để đăng nhập. Nếu chưa có tài khoản, đăng ký bằng họ tên, email, mật khẩu và số điện thoại.'
+      : 'Use your email and password to log in. If you do not have an account, register with your name, email, password, and phone number.';
+  String get guideStepTopUpTitle => vi ? 'Nạp tiền vào ví' : 'Top up your wallet';
+  String get guideStepTopUpBody => vi
+      ? 'Vào nút Nạp tiền, chuyển khoản theo thông tin QR và chờ hệ thống ghi nhận số dư.'
+      : 'Tap Top up, transfer using the QR information, and wait for the balance to be recorded.';
+  String get guideStepTimeTitle => vi ? 'Chọn thời gian thuê' : 'Choose rental time';
+  String get guideStepTimeBody => vi
+      ? 'Nhập số giờ muốn thuê. App sẽ tính tiền thuê, tiền cọc và tổng số dư cần có.'
+      : 'Enter the number of rental hours. The app calculates the rental fee, deposit, and required total.';
+  String get guideStepQrTitle => vi ? 'Quét QR trên xe' : 'Scan the bike QR';
+  String get guideStepQrBody => vi
+      ? 'Bấm Quét QR và chỉ quét mã hợp lệ bắt đầu bằng “haq-trk-”. Sau khi xác nhận, app gửi lệnh mở khóa đến phần cứng.'
+      : 'Tap Scan QR and scan only valid codes starting with “haq-trk-”. After confirmation, the app sends an unlock command to the device.';
+  String get guideStepRideTitle => vi ? 'Theo dõi chuyến đi' : 'Track your ride';
+  String get guideStepRideBody => vi
+      ? 'Trong lúc sử dụng, bạn có thể xem thời gian còn lại, trạng thái xe và dữ liệu xe gửi về.'
+      : 'During the ride, you can view remaining time, bike status, and live data from the device.';
+  String get guideStepReturnTitle => vi ? 'Trả xe và kết thúc' : 'Return and end ride';
+  String get guideStepReturnBody => vi
+      ? 'Đưa xe về trạm hợp lệ, khóa xe và bấm kết thúc sử dụng để hệ thống tính tiền chuyến đi.'
+      : 'Return the bike to a valid station, lock it, and end the ride so the system can calculate the final fee.';
+
 }
