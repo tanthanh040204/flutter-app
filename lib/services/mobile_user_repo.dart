@@ -320,9 +320,13 @@ class MobileUserRepo {
       phone: cred.user!.phoneNumber,
       fullName: cred.user!.displayName ?? 'New User',
     );
+    final MobileUserProfile updatedProfile = profile.copyWith(
+      lastLoginAt: DateTime.now(),
+    );
+    await _saveUserProfile(updatedProfile);
 
-    await addLoginEvent(profile.employeeCode);
-    return profile;
+    await addLoginEvent(updatedProfile.employeeCode);
+    return updatedProfile;
   }
 
   Future<MobileUserProfile> register({
@@ -883,7 +887,21 @@ class MobileUserRepo {
 
     batch.set(rentalUserRef, {
       'userId': wireUserId,
+      'wireUserId': wireUserId,
+      'uid': user.uid,
+      'employeeCode': user.employeeCode,
+      'fullName': user.fullName,
+      'displayName': user.fullName,
+      'phone': user.phone,
+      'email': user.email,
+      'role': user.role,
       'tokens': user.balance - pricing.totalRequired,
+      'balance': user.balance - pricing.totalRequired,
+      'depositLocked': pricing.depositAmount,
+      'isActive': user.isActive,
+      'currentSessionId': sessionId,
+      'currentBikeId': vehicle.id,
+      'currentBikeStartedAt': Timestamp.fromDate(now),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
@@ -988,6 +1006,17 @@ class MobileUserRepo {
     final DocumentReference userRef = _db!
         .collection(kColUsers)
         .doc(session.uid);
+    final MobileUserProfile? userProfile = await watchUserProfile(
+      session.uid,
+    ).first;
+    final String wireUserId = buildWireUserId(
+      uid: session.uid,
+      phone: userProfile?.phone,
+      email: userProfile?.email,
+    );
+    final DocumentReference rentalUserRef = _db!
+        .collection(kColRentalUsers)
+        .doc(wireUserId);
     final DocumentReference commandRef = _db!
         .collection(kColVehicleCommands)
         .doc();
@@ -1014,6 +1043,14 @@ class MobileUserRepo {
     batch.set(userRef, {
       'depositLocked': 0,
       'currentSessionId': null,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    batch.set(rentalUserRef, {
+      'depositLocked': 0,
+      'currentSessionId': null,
+      'currentBikeId': FieldValue.delete(),
+      'currentBikeStartedAt': FieldValue.delete(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
@@ -1050,8 +1087,16 @@ class MobileUserRepo {
   Future<void> _saveUserProfile(MobileUserProfile profile) async {
     final FirebaseFirestore? db = _db;
     if (db == null) return;
+
+    final String wireUserId = buildWireUserId(
+      uid: profile.uid,
+      phone: profile.phone,
+      email: profile.email,
+    );
+
     await db.collection(kColUsers).doc(profile.uid).set({
       'uid': profile.uid,
+      'wireUserId': wireUserId,
       'employeeCode': profile.employeeCode,
       'fullName': profile.fullName,
       'phone': profile.phone,
@@ -1066,16 +1111,23 @@ class MobileUserRepo {
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    final String wireUserId = buildWireUserId(
-      uid: profile.uid,
-      phone: profile.phone,
-      email: profile.email,
-    );
     await db.collection(kColRentalUsers).doc(wireUserId).set({
       'userId': wireUserId,
-      'tokens': profile.balance,
+      'wireUserId': wireUserId,
+      'uid': profile.uid,
+      'employeeCode': profile.employeeCode,
+      'fullName': profile.fullName,
       'displayName': profile.fullName,
+      'phone': profile.phone,
+      'email': profile.email,
+      'role': profile.role,
+      'tokens': profile.balance,
+      'balance': profile.balance,
+      'depositLocked': profile.depositLocked,
       'isActive': profile.isActive,
+      'currentSessionId': profile.currentSessionId,
+      'createdAt': Timestamp.fromDate(profile.createdAt),
+      'lastLoginAt': Timestamp.fromDate(profile.lastLoginAt),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
