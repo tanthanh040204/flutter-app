@@ -54,6 +54,7 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _available = false;
   bool _foreground = true;
   bool _scanning = false; /* a scan cycle is in flight */
+  bool _tripActive = false; /* saw an active rental for the relayed bike */
   String? _target; /* bike currently targeted */
   String? _persisted; /* last-rented bike from prefs */
   BleRelayState _state = BleRelayState.idle;
@@ -77,8 +78,22 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
       _persisted = sessionBike;
       _savePersisted(sessionBike);
     }
+    if (ride.hasActiveSession) _tripActive = true;
+
+    if (_state == BleRelayState.relaying && _tripActive && ride.isEnded) {
+      _tripActive = false;
+      _log('rental ended (END_RENTAL) — closing relay');
+      _stopAll(keepTarget: true);
+      return;
+    }
+
     final String? next = sessionBike ?? _persisted;
-    if (next == _target) return;
+    if (next == _target) {
+      if (_state == BleRelayState.idle && ride.hasActiveSession) {
+        _maybeStart();
+      }
+      return;
+    }
     _target = next;
     _resetToScanning();
   }
@@ -228,6 +243,7 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
     _unwireRelay();
     _cycleTimer?.cancel();
     _scanning = false;
+    _tripActive = false;
     _ble.disconnect();
     _state = BleRelayState.idle;
     _maybeStart();
@@ -237,6 +253,7 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
     _cycleTimer?.cancel();
     _unwireRelay();
     _scanning = false;
+    _tripActive = false;
     _ble.disconnect();
     if (!keepTarget) _target = null;
     _setState(BleRelayState.idle);
