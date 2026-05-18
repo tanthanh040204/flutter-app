@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Used to relay a nearby UTE-go bike's data when it loses cellular signal.</string>
 </dict>
 </plist>

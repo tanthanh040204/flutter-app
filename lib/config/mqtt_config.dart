@@ -38,6 +38,8 @@ class MqttTopics {
   static String appToWeb(String bikeId) => '$bikeId/app_web';
   static String webToApp(String bikeId) => '$bikeId/web_app';
   static String deviceData(String bikeId) => '$bikeId/data';
+  static String deviceNoti(String bikeId) => '$bikeId/noti';
+  static String deviceCmd(String bikeId) => '$bikeId/cmd';
   static String userResponse(String userId) => '$userId/response';
 }
 

@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/error_codes.dart';
 import '../../models/home_feed_item.dart';
+import '../../providers/ble_relay_provider.dart';
 import '../../providers/mobile_auth_provider.dart';
 import '../../providers/mobile_ride_provider.dart';
 import '../../services/protocol_codec.dart';
@@ -115,6 +116,11 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
             money,
           ),
           const SizedBox(height: 16),
+          if (context.watch<BleRelayProvider>().state !=
+              BleRelayState.idle) ...[
+            _buildBleRelayChip(context.watch<BleRelayProvider>().state),
+            const SizedBox(height: 16),
+          ],
           if (!ride.hasActiveSession && ride.phase != RentalPhase.starting) ...[
             _buildRentalTimeCard(ride, money, t),
             const SizedBox(height: 16),
@@ -221,6 +227,33 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBleRelayChip(BleRelayState s) {
+    final (String label, IconData icon, Color color) = switch (s) {
+      BleRelayState.scanning => ('BLE: scanning for bike', Icons.bluetooth_searching, Colors.blueGrey),
+      BleRelayState.connecting => ('BLE: connecting', Icons.bluetooth_connected, Colors.orange),
+      BleRelayState.relaying => ('BLE relay active', Icons.bluetooth_connected, Colors.green),
+      BleRelayState.idle => ('', Icons.bluetooth_disabled, Colors.grey),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(color: color, fontWeight: FontWeight.w600),
           ),
         ],
       ),

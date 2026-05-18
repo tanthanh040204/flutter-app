@@ -143,11 +143,6 @@ class MqttService extends ChangeNotifier {
     return ctl.stream;
   }
 
-  /*
-   * Raw payload stream — yields the unparsed string received on `topic`.
-   * Used for topics whose payload is JSON (e.g. bike_id/data) and therefore
-   * not compatible with ProtocolCodec's "CMD=arg1,arg2" format.
-   */
   Stream<String> rawStreamOf(String topic) {
     final StreamController<String> ctl = _rawTopicCtls.putIfAbsent(
       topic,
