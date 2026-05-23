@@ -19,6 +19,7 @@ import '../services/mqtt_service.dart';
 import '../services/protocol_codec.dart';
 import '../services/user_wire_id.dart';
 import 'mobile_telemetry_provider.dart';
+import '../models/device_telemetry.dart';
 
 /* Constants ---------------------------------------------------------- */
 /* Enums -------------------------------------------------------------- */
@@ -77,6 +78,10 @@ class MobileRideProvider extends ChangeNotifier {
     final int overdue = total - selected;
     return block - (overdue % block);
   }
+
+  /* The latest telemetry for the current bike, if any. */
+  DeviceTelemetry? get latestTelemetry =>
+      _bikeId != null ? _telemetry?.telemetryFor(_bikeId!) : null;
 
   /* Total seconds the rental has gone past the originally-selected
    * window. 0 while still within the pre-paid blocks. */
@@ -212,7 +217,8 @@ class MobileRideProvider extends ChangeNotifier {
   }
 
   void clearDebt() {
-    final bool hadDebt = debtAmount != 0 ||
+    final bool hadDebt =
+        debtAmount != 0 ||
         warning == kEvtWarnDebt ||
         warning == kEvtRentalNotiLimit;
     if (!hadDebt) return;

@@ -187,10 +187,14 @@ class AppStrings {
   String get bikeUnlockedWaitingData => vi
       ? 'Xe đã mở khóa, đang chờ ESP32 gửi dữ liệu...'
       : 'Bike is unlocked, waiting for ESP32 data...';
-  String get battery => vi ? 'Pin' : 'Battery';
+  String get velocityMs => vi ? 'Vận tốc (m/s)' : 'Velocity (m/s)';
+  String get velocityKmh => vi ? 'Vận tốc (km/h)' : 'Velocity (km/h)';
+  String get distanceM => vi ? 'Quãng đường (m)' : 'Distance (m)';
+  String get position => vi ? 'Vị trí' : 'Position';
   String get temperature => vi ? 'Nhiệt độ' : 'Temperature';
   String get humidity => vi ? 'Độ ẩm' : 'Humidity';
   String get dust => vi ? 'Bụi' : 'Dust';
+  String get direction => vi ? 'Hướng' : 'Direction';
   String get status => vi ? 'Trạng thái' : 'Status';
   String get lockedTemporarily =>
       vi ? 'Xe đang khóa tạm thời' : 'Bike temporarily locked';

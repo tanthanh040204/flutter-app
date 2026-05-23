@@ -12,6 +12,7 @@ import '../../l10n/app_strings.dart';
 import '../../models/error_codes.dart';
 import '../../providers/mobile_ride_provider.dart';
 import '../../services/protocol_codec.dart';
+import '../../models/device_telemetry.dart';
 
 /* Constants ---------------------------------------------------------- */
 /* Enums -------------------------------------------------------------- */
@@ -40,6 +41,7 @@ class MobileRideTab extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, MobileRideProvider ride) {
+    DeviceTelemetry? telemetry = ride.latestTelemetry;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -57,7 +59,7 @@ class MobileRideTab extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 _InfoRow(
                   label: context.tr.status,
                   value: ride.isPaused ? context.tr.pause : context.tr.unlocked,
@@ -72,6 +74,54 @@ class MobileRideTab extends StatelessWidget {
                   label: context.tr.remainingTime,
                   value: _formatSeconds(ride.liveRemainingSeconds),
                 ),
+                _InfoRow(
+                  label: context.tr.velocityMs,
+                  value: telemetry?.velocityMs != null
+                      ? '${telemetry!.velocityMs} m/s'
+                      : 'N/A',
+                ),
+                _InfoRow(
+                  label: context.tr.velocityKmh,
+                  value: telemetry?.velocityKmh != null
+                      ? '${telemetry!.velocityKmh} km/h'
+                      : 'N/A',
+                ),
+                _InfoRow(
+                  label: context.tr.distanceM,
+                  value: telemetry?.distanceM != null
+                      ? '${telemetry!.distanceM} m'
+                      : 'N/A',
+                ),
+                _InfoRow(
+                  label: context.tr.position,
+                  value: telemetry?.lat != null && telemetry?.lng != null
+                      ? '(${telemetry!.lat}, ${telemetry.lng})'
+                      : 'N/A',
+                ),
+                _InfoRow(
+                  label: context.tr.temperature,
+                  value: telemetry?.temp != null
+                      ? '${telemetry!.temp}°C'
+                      : 'N/A',
+                ),
+                _InfoRow(
+                  label: context.tr.humidity,
+                  value: telemetry?.hum != null ? '${telemetry!.hum}%' : 'N/A',
+                ),
+                _InfoRow(
+                  label: context.tr.dust,
+                  value: telemetry?.dust != null
+                      ? '${telemetry!.dust} μg/m³'
+                      : 'N/A',
+                ),
+                _InfoRow(
+                  label: context.tr.direction,
+                  value:
+                      telemetry?.directionDeg != null ||
+                          telemetry?.directionStr != null
+                      ? '${telemetry!.directionDeg}°${telemetry!.directionStr}'
+                      : 'N/A',
+                ),
               ],
             ),
           ),
@@ -81,7 +131,9 @@ class MobileRideTab extends StatelessWidget {
           onPressed: ride.isPaused ? ride.resumeRide : ride.pauseRide,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Text(ride.isPaused ? context.tr.resumeUse : context.tr.pauseUse),
+            child: Text(
+              ride.isPaused ? context.tr.resumeUse : context.tr.pauseUse,
+            ),
           ),
         ),
         const SizedBox(height: 12),
