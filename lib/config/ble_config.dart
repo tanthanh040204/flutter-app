@@ -29,6 +29,7 @@ const int kBleChCmdResp = 2;
 
 const Duration kBleScanWindow = Duration(seconds: 8);
 const Duration kBleScanGap = Duration(seconds: 25);
+const Duration kBleStartGrace = Duration(seconds: 60);
 
 const String kBlePrefLastBikeId = 'ble_relay_last_bike_id';
 

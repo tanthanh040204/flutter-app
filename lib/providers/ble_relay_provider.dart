@@ -50,6 +50,7 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
   StreamSubscription<(int, List<int>)>? _inboundSub;
   StreamSubscription<String>? _cmdSub;
   Timer? _cycleTimer;
+  Timer? _startGraceTimer;
 
   bool _available = false;
   bool _foreground = true;
@@ -78,7 +79,11 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
       _persisted = sessionBike;
       _savePersisted(sessionBike);
     }
-    if (ride.hasActiveSession) _tripActive = true;
+    if (ride.hasActiveSession) {
+      _tripActive = true;
+      _startGraceTimer?.cancel();
+      _startGraceTimer = null;
+    }
 
     if (_state == BleRelayState.relaying && _tripActive && ride.isEnded) {
       _tripActive = false;
@@ -89,7 +94,8 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     final String? next = sessionBike ?? _persisted;
     if (next == _target) {
-      if (_state == BleRelayState.idle && ride.hasActiveSession) {
+      if (_state == BleRelayState.idle &&
+          (ride.hasActiveSession || ride.phase == RentalPhase.starting)) {
         _maybeStart();
       }
       return;
@@ -199,6 +205,10 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
         _wireRelay();
         _setState(BleRelayState.relaying);
         _log('relay active for $_target');
+        if (!_tripActive) {
+          _startGraceTimer?.cancel();
+          _startGraceTimer = Timer(kBleStartGrace, _onStartGraceExpired);
+        }
         break;
       case BleLinkState.disconnected:
         if (state == BleRelayState.idle) break;
@@ -236,7 +246,17 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
     _inboundSub = null;
     _cmdSub?.cancel();
     _cmdSub = null;
+    _startGraceTimer?.cancel();
+    _startGraceTimer = null;
     if (_target != null) _mqtt.unsubscribe(MqttTopics.deviceCmd(_target!));
+  }
+
+  void _onStartGraceExpired() {
+    _startGraceTimer = null;
+    if (_state != BleRelayState.relaying) return;
+    if (_tripActive) return; /* rental already running — keep BLE */
+    _log('start grace expired without a rental — dropping BLE');
+    _stopAll(keepTarget: true);
   }
 
   void _resetToScanning() {
