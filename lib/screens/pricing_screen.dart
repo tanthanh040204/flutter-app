@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/pricing_config.dart';
 import '../providers/mobile_ride_provider.dart';
 
@@ -22,32 +23,26 @@ class PricingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final PricingConfig pricing = context.watch<MobileRideProvider>().pricing;
     return Scaffold(
-      appBar: AppBar(title: const Text('Pricing')),
+      appBar: AppBar(title: Text(context.tr.priceList)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Card(
             child: ListTile(
-              title: const Text('Rate per hour'),
+              title: Text(context.tr.ratePerHour),
               trailing: Text('${pricing.pricePerHour}đ'),
             ),
           ),
           Card(
             child: ListTile(
-              title: const Text('Deposit'),
+              title: Text(context.tr.deposit),
               trailing: Text('${pricing.depositAmount}đ'),
             ),
           ),
           Card(
             child: ListTile(
-              title: const Text('Minimum balance to start'),
+              title: Text(context.tr.minimumRequiredBalance),
               trailing: Text('${pricing.minimumRequiredBalance}đ'),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              title: const Text('Suggested return battery threshold'),
-              trailing: Text('${pricing.lowBatteryThreshold}%'),
             ),
           ),
         ],

@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/station.dart';
 import '../../providers/mobile_stations_provider.dart';
+import '../../l10n/app_strings.dart';
 
 /* Constants ---------------------------------------------------------- */
 const Color kMarkerColor = Color(0xFF1557FF);
@@ -40,7 +41,7 @@ class MobileStationsTab extends StatelessWidget {
         : userPoint;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Stations')),
+      appBar: AppBar(title: Text(context.tr.stations)),
       body: FlutterMap(
         options: MapOptions(initialCenter: center, initialZoom: 15.2),
         children: [
@@ -79,7 +80,7 @@ class MobileStationsTab extends StatelessWidget {
         onPressed: () =>
             context.read<MobileStationsProvider>().refreshUserLocation(),
         icon: const Icon(Icons.refresh),
-        label: const Text('Refresh'),
+        label: Text(context.tr.refresh),
       ),
     );
   }

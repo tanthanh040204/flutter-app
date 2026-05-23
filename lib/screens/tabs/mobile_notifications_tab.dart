@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/mobile_notice_provider.dart';
 import '../route_view_screen.dart';
+import '../../l10n/app_strings.dart';
 
 /* Constants ---------------------------------------------------------- */
 const Color kIconColor = Color(0xFF1557FF);
@@ -29,7 +30,7 @@ class MobileNotificationsTab extends StatelessWidget {
     final MobileNoticeProvider provider = context.watch<MobileNoticeProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(title: Text(context.tr.notifications)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -44,9 +45,9 @@ class MobileNotificationsTab extends StatelessWidget {
           ),
           if (provider.routes.isNotEmpty) ...[
             const SizedBox(height: 12),
-            const Text(
-              'Routes',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            Text(
+              context.tr.routes,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             ...provider.routes.map(

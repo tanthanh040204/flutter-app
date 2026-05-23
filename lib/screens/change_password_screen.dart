@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/mobile_auth_provider.dart';
+import '../l10n/app_strings.dart';
 
 /* Constants ---------------------------------------------------------- */
 /* Enums -------------------------------------------------------------- */
@@ -37,20 +38,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Change password')),
+      appBar: AppBar(title: Text(context.tr.changePassword)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
             controller: currentCtl,
             obscureText: true,
-            decoration: const InputDecoration(labelText: 'Current password'),
+            decoration: InputDecoration(labelText: context.tr.currentPassword),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: newCtl,
             obscureText: true,
-            decoration: const InputDecoration(labelText: 'New password'),
+            decoration: InputDecoration(labelText: context.tr.newPassword),
           ),
           const SizedBox(height: 16),
           FilledButton(
@@ -70,9 +71,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       );
                       if (!mounted) return;
                       messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Password changed successfully.'),
-                        ),
+                        SnackBar(content: Text(context.tr.passwordChanged)),
                       );
                       navigator.pop();
                     } catch (e) {
@@ -86,7 +85,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(loading ? 'Saving...' : 'Save new password'),
+              child: Text(
+                loading ? context.tr.processing : context.tr.saveNewPassword,
+              ),
             ),
           ),
         ],
