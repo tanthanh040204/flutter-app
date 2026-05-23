@@ -110,6 +110,7 @@ class AppStrings {
   }
   String get cancel => vi ? 'Hủy' : 'Cancel';
   String get yes => vi ? 'Có' : 'Yes';
+  String get connectingBle => vi ? 'Đang kết nối Bluetooth…' : 'Connecting via Bluetooth…';
   String startedRide(String vehicleName, int hours) => vi ? 'Đã bắt đầu thuê $vehicleName trong $hours giờ.' : 'Started renting $vehicleName for $hours hour(s).';
   String startRideFailed(String error) => vi ? 'Không thể bắt đầu chuyến đi: $error' : 'Could not start the ride: $error';
 

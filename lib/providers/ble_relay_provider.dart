@@ -56,6 +56,8 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _foreground = true;
   bool _scanning = false; /* a scan cycle is in flight */
   bool _tripActive = false; /* saw an active rental for the relayed bike */
+  bool _relayWanted = false; /* gate: scan only when the app has rental
+                                intent (warmUp/start/active session) */
   String? _target; /* bike currently targeted */
   String? _persisted; /* last-rented bike from prefs */
   BleRelayState _state = BleRelayState.idle;
@@ -81,12 +83,14 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
     if (ride.hasActiveSession) {
       _tripActive = true;
+      _relayWanted = true;
       _startGraceTimer?.cancel();
       _startGraceTimer = null;
     }
 
     if (_state == BleRelayState.relaying && _tripActive && ride.isEnded) {
       _tripActive = false;
+      _relayWanted = false;
       _log('rental ended (END_RENTAL) — closing relay');
       _stopAll(keepTarget: true);
       return;
@@ -96,12 +100,50 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (next == _target) {
       if (_state == BleRelayState.idle &&
           (ride.hasActiveSession || ride.phase == RentalPhase.starting)) {
+        _relayWanted = true;
         _maybeStart();
       }
       return;
     }
     _target = next;
+    _relayWanted =
+        ride.hasActiveSession || ride.phase == RentalPhase.starting;
     _resetToScanning();
+  }
+
+  Future<bool> warmUpFor(
+    String bikeId, {
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    if (!FeatureConfig.enableBleRelay || !_available || !_foreground) {
+      return false;
+    }
+    if (_state == BleRelayState.relaying && _target == bikeId) return true;
+    _relayWanted = true; /* user pressed Start → real intent to relay */
+
+    final Completer<bool> done = Completer<bool>();
+    final StreamSubscription<BleLinkState> sub = _ble.link.listen((s) {
+      if (s == BleLinkState.ready && !done.isCompleted) done.complete(true);
+    });
+    final Timer t = Timer(timeout, () {
+      if (!done.isCompleted) done.complete(false);
+    });
+
+    if (_target != bikeId) {
+      _target = bikeId;
+      if (bikeId != _persisted) {
+        _persisted = bikeId;
+        _savePersisted(bikeId);
+      }
+      _resetToScanning();
+    } else if (_state == BleRelayState.idle) {
+      _maybeStart();
+    }
+
+    final bool ok = await done.future;
+    await sub.cancel();
+    t.cancel();
+    return ok;
   }
 
   @override
@@ -155,6 +197,7 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!FeatureConfig.enableBleRelay || !_available) return;
     if (!_foreground || _target == null) return;
     if (state != BleRelayState.idle) return;
+    if (!_relayWanted && FeatureConfig.bleDebugForceBikeId.isEmpty) return;
     _scheduleCycle(Duration.zero);
   }
 
@@ -255,6 +298,7 @@ class BleRelayProvider extends ChangeNotifier with WidgetsBindingObserver {
     _startGraceTimer = null;
     if (_state != BleRelayState.relaying) return;
     if (_tripActive) return; /* rental already running — keep BLE */
+    _relayWanted = false; /* intent fulfilled (negative result) */
     _log('start grace expired without a rental — dropping BLE');
     _stopAll(keepTarget: true);
   }

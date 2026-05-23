@@ -5,6 +5,8 @@
  */
 
 /* Imports ------------------------------------------------------------ */
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -12,6 +14,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/error_codes.dart';
+import '../providers/ble_relay_provider.dart';
 import '../providers/mobile_auth_provider.dart';
 import '../providers/mobile_ride_provider.dart';
 
@@ -103,7 +106,9 @@ class _QrScanScreenState extends State<QrScanScreen> {
             child: Text(t.cancel),
           ),
           FilledButton(
-            onPressed: enoughBalance ? () => Navigator.pop(context, true) : null,
+            onPressed: enoughBalance
+                ? () => Navigator.pop(context, true)
+                : null,
             child: Text(t.yes),
           ),
         ],
@@ -111,6 +116,30 @@ class _QrScanScreenState extends State<QrScanScreen> {
     );
 
     if (ok != true) return false;
+    if (!context.mounted) return false;
+
+    final BleRelayProvider ble = context.read<BleRelayProvider>();
+    BuildContext? loadingCtx;
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dCtx) {
+          loadingCtx = dCtx;
+          return const Center(
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: CircularProgressIndicator(),
+            ),
+          );
+        },
+      ),
+    );
+    await ble.warmUpFor(vehicleId, timeout: const Duration(seconds: 10));
+    if (loadingCtx != null && loadingCtx!.mounted) {
+      Navigator.of(loadingCtx!).pop();
+    }
     if (!context.mounted) return false;
 
     final bool published = await ride.startRental(
