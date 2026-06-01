@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 
 import '../config/feature_conf.dart';
 import '../config/mqtt_config.dart';
+import '../models/device_telemetry.dart';
 import '../models/error_codes.dart';
 import '../models/mobile_user_profile.dart';
 import '../models/pricing_config.dart';
@@ -77,6 +78,10 @@ class MobileRideProvider extends ChangeNotifier {
     final int overdue = total - selected;
     return block - (overdue % block);
   }
+
+  /* The latest telemetry for the current bike, if any. */
+  DeviceTelemetry? get latestTelemetry =>
+      _bikeId != null ? _telemetry?.telemetryFor(_bikeId!) : null;
 
   /* Total seconds the rental has gone past the originally-selected
    * window. 0 while still within the pre-paid blocks. */

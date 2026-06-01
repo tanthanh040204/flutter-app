@@ -61,7 +61,7 @@ class AppStrings {
   String get processing => vi ? 'Đang xử lý...' : 'Processing...';
   String get passwordChanged => vi ? 'Đổi mật khẩu thành công.' : 'Password changed successfully.';
 
-  String get onboardingTitle1 => vi ? 'Xe đạp công cộng - Đi bất kỳ đâu' : 'Public bikes - Go anywhere';
+  String get onboardingTitle1 => vi ? 'Phương tiện công cộng - Đi bất kỳ đâu' : 'Public vehicles - Go anywhere';
   String get onboardingDesc1 => vi ? 'Bạn có thể lấy xe tại một trạm, thực hiện chuyến đi và trả xe tại một trạm bất kỳ.' : 'Pick up a bike at one station, take your trip, and return it at any station.';
   String get onboardingTitle2 => vi ? 'Quét QR để mở khóa' : 'Scan QR to unlock';
   String get onboardingDesc2 => vi ? 'Chỉ cần quét QR trên xe và xác nhận sử dụng nếu số dư của bạn hợp lệ.' : 'Scan the QR code on the bike and confirm if your balance is valid.';
@@ -110,6 +110,11 @@ class AppStrings {
   }
   String get cancel => vi ? 'Hủy' : 'Cancel';
   String get yes => vi ? 'Có' : 'Yes';
+  String get connectingBle =>
+      vi ? 'Đang kết nối Bluetooth…' : 'Connecting via Bluetooth…';
+  String get bleScanning => vi ? 'Bluetooth: đang tìm xe' : 'BLE: scanning for bike';
+  String get bleConnecting => vi ? 'Bluetooth: đang kết nối' : 'BLE: connecting';
+  String get bleRelaying => vi ? 'Bluetooth đang truyền dữ liệu' : 'BLE relay active';
   String startedRide(String vehicleName, int hours) => vi ? 'Đã bắt đầu thuê $vehicleName trong $hours giờ.' : 'Started renting $vehicleName for $hours hour(s).';
   String startRideFailed(String error) => vi ? 'Không thể bắt đầu chuyến đi: $error' : 'Could not start the ride: $error';
 
@@ -207,5 +212,86 @@ class AppStrings {
   String get guideStepReturnBody => vi
       ? 'Đưa xe về trạm hợp lệ, khóa xe và bấm kết thúc sử dụng để hệ thống tính tiền chuyến đi.'
       : 'Return the bike to a valid station, lock it, and end the ride so the system can calculate the final fee.';
+
+
+  String get bill => vi ? 'Hóa đơn' : 'Bill';
+  String get userId => vi ? 'Mã người dùng' : 'User ID';
+  String get endedAt => vi ? 'Thời gian kết thúc' : 'Ended at';
+  String get totalAmount => vi ? 'Tổng tiền' : 'Total amount';
+  String get close => vi ? 'Đóng' : 'Close';
+  String get rideEndedTitle => vi ? 'Đã kết thúc chuyến đi' : 'Ride ended';
+  String get rideCompletedSuccessfully => vi ? 'Hoàn tất thành công' : 'Completed successfully';
+  String get rideEndedWarningTitle => vi ? 'Đã kết thúc chuyến đi (cảnh báo)' : 'Ride ended (warning)';
+  String get rideGraceWindowStatus => vi ? 'Kết thúc trong thời gian cảnh báo 15 phút' : 'Ended within the 15-minute grace window';
+  String get rideGraceWindowDetail => vi
+      ? 'Bạn đã trả xe trong khoảng thời gian cảnh báo 15 phút.'
+      : 'You returned the bike within the 15-minute warning window.';
+  String get rideEndedViolationTitle => vi ? 'Đã kết thúc chuyến đi (vi phạm)' : 'Ride ended (violation)';
+  String get ridePenaltyStatus => vi ? 'Vượt quá thời gian cảnh báo 15 phút' : 'Exceeded the 15-minute warning window';
+  String get ridePenaltyDetail => vi
+      ? 'Xe vẫn ở ngoài khu vực trả xe sau thời gian cảnh báo 15 phút. Hệ thống đã kết thúc chuyến đi và áp dụng phí phạt.'
+      : 'The bike was still outside a parking zone after the 15-minute warning. The system ended the ride and applied a penalty.';
+
+  String get ratePerHour => vi ? 'Giá thuê theo giờ' : 'Rate per hour';
+  String get suggestedReturnBatteryThreshold => vi ? 'Ngưỡng pin khuyến nghị khi trả xe' : 'Suggested return battery threshold';
+
+  String get topUpSuccessful => vi ? 'Nạp tiền thành công' : 'Top-up successful';
+  String get topUpFailed => vi ? 'Nạp tiền thất bại' : 'Top-up failed';
+  String newBalance(String amount) => vi ? 'Số dư mới: $amount' : 'New balance: $amount';
+  String memo(String value) => vi ? 'Nội dung chuyển khoản: $value' : 'Memo: $value';
+  String get saving => vi ? 'Đang lưu...' : 'Saving...';
+
+  String vehicleLabel(String id) => vi ? 'Xe $id' : 'Bike $id';
+  String get unlockingBike => vi ? 'Đang mở khóa xe...' : 'Unlocking the bike...';
+  String pricePerHourAmount(int amount) => vi ? '$amountđ/giờ' : '$amountđ/hour';
+  String get pauseDiscountSuffix => vi ? ' (giảm 50%)' : ' (50% off)';
+  String overdueText(String value) => vi ? 'Quá hạn $value' : 'Overdue $value';
+  String get balanceRunningLowTitle => vi ? 'Số dư sắp hết' : 'Balance running low';
+  String get outOfBalanceTitle => vi ? 'Hết số dư — vui lòng trả xe' : 'Out of balance — return the bike';
+  String get outOfParkingZoneTitle => vi ? 'Xe đang ngoài khu vực trả xe hợp lệ' : 'Outside a valid parking zone';
+  String get warning => vi ? 'Cảnh báo' : 'Warning';
+  String get lowBalanceBody => vi
+      ? 'Bạn chỉ còn đủ tiền cho khoảng thời gian hiện tại. Vui lòng nạp thêm.'
+      : 'You only have enough for the current block. Please top up.';
+  String get outOfBalanceBody => vi
+      ? 'Vui lòng trả xe về khu vực đỗ hợp lệ trong vòng 15 phút để tránh phí phạt.'
+      : 'Return the bike to a parking zone within 15 minutes to avoid a penalty.';
+  String get outOfParkingZoneBody => vi
+      ? 'Di chuyển xe đến khu vực đỗ gần nhất để kết thúc chuyến đi.'
+      : 'Move the bike to the nearest parking zone to end the ride.';
+  String get couldNotStartRide => vi ? 'Không thể bắt đầu chuyến đi' : 'Could not start the ride';
+
+  String get route => vi ? 'Lộ trình' : 'Route';
+  String routeFromTo(String start, String end) => vi ? 'Lộ trình từ $start đến $end' : 'Route $start to $end';
+  String routeAt(String start) => vi ? 'Lộ trình $start' : 'Route $start';
+
+  String errorDescription(String code) {
+    switch (code) {
+      case 'ERR_ACCOUNT_INVALID':
+        return vi ? 'Tài khoản không hợp lệ.' : 'Invalid account.';
+      case 'ERR_USER_NOT_FOUND':
+        return vi ? 'Không tìm thấy người dùng.' : 'User does not exist.';
+      case 'ERR_ACCOUNT_DEBT':
+        return vi ? 'Tài khoản còn phí chưa thanh toán.' : 'Account has outstanding fees.';
+      case 'ERR_INSUFFICIENT_BALANCE':
+        return vi ? 'Số dư không đủ để thuê xe.' : 'Balance is insufficient to rent.';
+      case 'ERR_BIKE_UNAVAILABLE':
+        return vi ? 'Xe hiện không khả dụng.' : 'Vehicle is not available.';
+      case 'ERR_BIKE_IN_USE':
+        return vi ? 'Xe đang được người khác sử dụng.' : 'Vehicle is currently in use by another rider.';
+      case 'ERR_TIME_LIMIT_WARNING':
+        return vi ? 'Bạn đã vượt thời gian cho phép, đang trong mức cảnh báo.' : 'You are over the allowed time (warning).';
+      case 'ERR_TIME_LIMIT_EXCEEDED':
+        return vi ? 'Đã vượt quá thời gian cho phép và bị tính phí phạt.' : 'Time limit exceeded — locked and penalised.';
+      case 'ERR_OUT_OF_PARKING_ZONE':
+        return vi ? 'Xe đang ở ngoài khu vực đỗ hợp lệ.' : 'Vehicle is outside a valid parking zone.';
+      case 'ERR_TOPUP_AMOUNT_INVALID':
+        return vi ? 'Số tiền nạp không hợp lệ.' : 'Invalid top-up amount.';
+      case 'ERR_TOPUP_FAILED':
+        return vi ? 'Nạp tiền thất bại.' : 'Top-up failed.';
+      default:
+        return vi ? 'Đã xảy ra lỗi ($code).' : 'An error occurred ($code).';
+    }
+  }
 
 }

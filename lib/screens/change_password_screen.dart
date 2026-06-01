@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../providers/mobile_auth_provider.dart';
 
 /* Constants ---------------------------------------------------------- */
@@ -36,21 +37,22 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     return Scaffold(
-      appBar: AppBar(title: const Text('Change password')),
+      appBar: AppBar(title: Text(t.changePassword)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
             controller: currentCtl,
             obscureText: true,
-            decoration: const InputDecoration(labelText: 'Current password'),
+            decoration: InputDecoration(labelText: t.currentPassword),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: newCtl,
             obscureText: true,
-            decoration: const InputDecoration(labelText: 'New password'),
+            decoration: InputDecoration(labelText: t.newPassword),
           ),
           const SizedBox(height: 16),
           FilledButton(
@@ -70,9 +72,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       );
                       if (!mounted) return;
                       messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Password changed successfully.'),
-                        ),
+                        SnackBar(content: Text(t.passwordChanged)),
                       );
                       navigator.pop();
                     } catch (e) {
@@ -86,7 +86,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(loading ? 'Saving...' : 'Save new password'),
+              child: Text(loading ? t.saving : t.saveNewPassword),
             ),
           ),
         ],

@@ -84,7 +84,6 @@ class MobileAuthProvider extends ChangeNotifier {
         identifier: identifier,
         password: password,
         usePhone: usePhone,
-        phone: phone,
       );
       await _bindProfile(user.uid);
       _currentUser = user;

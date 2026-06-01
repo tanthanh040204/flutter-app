@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'config/app_theme.dart';
 import 'firebase_options.dart';
 import 'providers/app_language_provider.dart';
+import 'providers/ble_relay_provider.dart';
 import 'providers/mobile_auth_provider.dart';
 import 'providers/mobile_notice_provider.dart';
 import 'providers/mobile_ride_provider.dart';
@@ -66,6 +67,22 @@ class TnGoUserApp extends StatelessWidget {
                   telemetry: context.read<MobileTelemetryProvider>(),
                 );
             provider.bindUser(auth.currentUser);
+            return provider;
+          },
+        ),
+        ChangeNotifierProxyProvider<MobileRideProvider, BleRelayProvider>(
+          create: (context) => BleRelayProvider(
+            context.read<MqttService>(),
+            context.read<MobileTelemetryProvider>(),
+          ),
+          update: (context, ride, previous) {
+            final BleRelayProvider provider =
+                previous ??
+                BleRelayProvider(
+                  context.read<MqttService>(),
+                  context.read<MobileTelemetryProvider>(),
+                );
+            provider.bindRide(ride);
             return provider;
           },
         ),

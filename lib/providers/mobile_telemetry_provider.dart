@@ -33,6 +33,13 @@ class MobileTelemetryProvider extends ChangeNotifier {
   /* --- public methods ------------------------------------------ */
   DeviceTelemetry? telemetryFor(String bikeId) => _latest[bikeId];
 
+  void ingestRaw(String bikeId, String raw) {
+    final DeviceTelemetry? parsed = TelemetryParser.parse(raw);
+    if (parsed == null) return;
+    _latest[bikeId] = parsed;
+    notifyListeners();
+  }
+
   /* Begin storing telemetry for `bikeId`. Idempotent — calling twice
    * with the same id is a no-op. */
   void watch(String bikeId) {

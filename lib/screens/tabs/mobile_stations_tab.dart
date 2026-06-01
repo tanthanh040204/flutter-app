@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../models/station.dart';
 import '../../providers/mobile_stations_provider.dart';
 
@@ -30,6 +31,7 @@ class MobileStationsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     final MobileStationsProvider stationsProvider = context
         .watch<MobileStationsProvider>();
     final List<BikeStation> stations = stationsProvider.stations;
@@ -40,7 +42,7 @@ class MobileStationsTab extends StatelessWidget {
         : userPoint;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Stations')),
+      appBar: AppBar(title: Text(t.stations)),
       body: FlutterMap(
         options: MapOptions(initialCenter: center, initialZoom: 15.2),
         children: [
@@ -79,7 +81,7 @@ class MobileStationsTab extends StatelessWidget {
         onPressed: () =>
             context.read<MobileStationsProvider>().refreshUserLocation(),
         icon: const Icon(Icons.refresh),
-        label: const Text('Refresh'),
+        label: Text(t.refresh),
       ),
     );
   }
@@ -97,9 +99,12 @@ class MobileStationsTab extends StatelessWidget {
         initialChildSize: 0.55,
         minChildSize: 0.35,
         maxChildSize: 0.85,
-        builder: (context, scrollController) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: ListView(
+        builder: (context, scrollController) {
+          final AppStrings t = context.tr;
+
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: ListView(
             controller: scrollController,
             children: [
               Text(
@@ -120,14 +125,14 @@ class MobileStationsTab extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _StationStat(
-                      label: 'Bikes left',
+                      label: t.bikesAvailable,
                       value: station.bikeCount.toString(),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _StationStat(
-                      label: 'Free slots',
+                      label: t.freeSlots,
                       value: station.availableSlots.toString(),
                     ),
                   ),
@@ -142,13 +147,13 @@ class MobileStationsTab extends StatelessWidget {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   },
                   icon: const Icon(Icons.map_outlined),
-                  label: const Text('Open in Google Maps'),
+                  label: Text(t.openGoogleMaps),
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Bikes at this station',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              Text(
+                t.bikesAtStation,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
               ...station.vehicles.map(
@@ -181,7 +186,7 @@ class MobileStationsTab extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${bike.status} - ${bike.batteryPercent}% battery',
+                              t.bikeBatteryText(bike.status, bike.batteryPercent),
                               style: TextStyle(
                                 color: _batteryColor(bike.batteryPercent),
                                 fontWeight: FontWeight.w600,
@@ -194,9 +199,10 @@ class MobileStationsTab extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

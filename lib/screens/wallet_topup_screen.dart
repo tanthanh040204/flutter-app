@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/error_codes.dart';
 import '../providers/mobile_auth_provider.dart';
 import '../providers/mobile_ride_provider.dart';
@@ -51,6 +52,7 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     final user = context.watch<MobileAuthProvider>().currentUser;
     final MobileWalletProvider wallet = context.watch<MobileWalletProvider>();
     final String uid = user?.uid ?? kUnknownUid;
@@ -65,13 +67,13 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
     _handleStatusSideEffects(wallet);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Top up')),
+      appBar: AppBar(title: Text(t.topUp)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            'Transfer using the QR below',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          Text(
+            t.topUpByQr,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 16),
           Center(
@@ -82,15 +84,15 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Card(
+          Card(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Bank: $kBankName'),
-                  Text('Account: $kBankAccount'),
-                  Text('Account holder: $kBankAccountHolder'),
+                  Text(t.bank),
+                  Text(t.accountNumber),
+                  Text(t.accountName),
                 ],
               ),
             ),
@@ -99,10 +101,10 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
           TextField(
             controller: amountCtl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Top-up amount'),
+            decoration: InputDecoration(labelText: t.topUpAmount),
           ),
           const SizedBox(height: 12),
-          SelectableText('Memo: $transferContent'),
+          SelectableText(t.memo(transferContent)),
           const SizedBox(height: 18),
           FilledButton(
             onPressed: requesting || user == null
@@ -113,7 +115,7 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(requesting ? 'Processing...' : 'I have transferred'),
+              child: Text(requesting ? t.processing : t.transferred),
             ),
           ),
           if (wallet.phase == TopupPhase.success &&
@@ -124,8 +126,8 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
                 color: Colors.green.shade50,
                 child: ListTile(
                   leading: const Icon(Icons.check_circle, color: Colors.green),
-                  title: const Text('Top-up successful'),
-                  subtitle: Text('New balance: ${wallet.latestBalance}đ'),
+                  title: Text(t.topUpSuccessful),
+                  subtitle: Text(t.newBalance('${wallet.latestBalance}${t.moneySymbol}')),
                 ),
               ),
             ),
@@ -136,8 +138,8 @@ class _WalletTopupScreenState extends State<WalletTopupScreen> {
                 color: Colors.red.shade50,
                 child: ListTile(
                   leading: const Icon(Icons.error, color: Colors.red),
-                  title: const Text('Top-up failed'),
-                  subtitle: Text(ErrorMessages.describe(wallet.lastError!)),
+                  title: Text(t.topUpFailed),
+                  subtitle: Text(t.errorDescription(wallet.lastError!)),
                 ),
               ),
             ),
