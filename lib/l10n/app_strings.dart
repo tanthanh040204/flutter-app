@@ -125,6 +125,10 @@ class AppStrings {
   String get temperature => vi ? 'Nhiệt độ' : 'Temperature';
   String get humidity => vi ? 'Độ ẩm' : 'Humidity';
   String get dust => vi ? 'Bụi' : 'Dust';
+  String get speed => vi ? 'Vận tốc' : 'Speed';
+  String get distanceTraveled => vi ? 'Quãng đường đã đi' : 'Distance traveled';
+  String get dangerNoti => vi ? 'Cảnh báo nguy hiểm' : 'Danger alerts';
+  String get findVehicle => vi ? 'Tìm xe' : 'Find bike';
   String get status => vi ? 'Trạng thái' : 'Status';
   String get lockedTemporarily => vi ? 'Xe đang khóa tạm thời' : 'Bike temporarily locked';
   String get locked => vi ? 'Xe đang khóa' : 'Bike locked';

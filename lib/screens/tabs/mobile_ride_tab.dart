@@ -9,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_strings.dart';
+import '../../models/device_telemetry.dart';
 import '../../models/error_codes.dart';
 import '../../providers/mobile_ride_provider.dart';
+import '../../providers/mobile_telemetry_provider.dart';
 import '../../services/protocol_codec.dart';
 
 /* Constants ---------------------------------------------------------- */
@@ -27,9 +29,32 @@ class MobileRideTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppStrings t = context.tr;
     final MobileRideProvider ride = context.watch<MobileRideProvider>();
+    /* Watch telemetry so the data card rebuilds as new snapshots arrive. */
+    context.watch<MobileTelemetryProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.rideStats)),
+      appBar: AppBar(
+        title: Text(t.rideStats),
+        actions: ride.hasActiveSession
+            ? [
+                Row(
+                  children: [
+                    const Icon(Icons.notifications_active_outlined, size: 20),
+                    Switch(
+                      value: ride.dangerNotiEnabled,
+                      onChanged: ride.setDangerNoti,
+                    ),
+                  ],
+                ),
+                IconButton(
+                  tooltip: t.findVehicle,
+                  icon: const Icon(Icons.my_location),
+                  onPressed: ride.findVehicle,
+                ),
+                const SizedBox(width: 4),
+              ]
+            : null,
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -163,6 +188,8 @@ class MobileRideTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
+        _buildTelemetryCard(context, ride.latestTelemetry),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
@@ -194,6 +221,63 @@ class MobileRideTab extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildTelemetryCard(BuildContext context, DeviceTelemetry? tm) {
+    final AppStrings t = context.tr;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _InfoRow(
+            icon: Icons.speed,
+            color: kRideBlue,
+            label: t.speed,
+            value: _fmt(tm?.velocityKmh, 'km/h', decimals: 1),
+          ),
+          _InfoRow(
+            icon: Icons.route_outlined,
+            color: kRideCyan,
+            label: t.distanceTraveled,
+            value: _fmt(tm?.distanceM, 'm', decimals: 0),
+          ),
+          _InfoRow(
+            icon: Icons.thermostat,
+            color: kRideOrange,
+            label: t.temperature,
+            value: _fmt(tm?.temp, '°C', decimals: 1),
+          ),
+          _InfoRow(
+            icon: Icons.water_drop_outlined,
+            color: kRideBlue,
+            label: t.humidity,
+            value: _fmt(tm?.hum, '%', decimals: 0),
+          ),
+          _InfoRow(
+            icon: Icons.grain,
+            color: kRideGreen,
+            label: t.dust,
+            value: _fmt(tm?.dust, 'µg/m³', decimals: 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmt(double? value, String unit, {int decimals = 1}) {
+    if (value == null) return '--';
+    return '${value.toStringAsFixed(decimals)} $unit';
   }
 
   Widget _buildWarning(BuildContext context, MobileRideProvider ride) {

@@ -54,6 +54,8 @@ class MobileRideProvider extends ChangeNotifier {
   String?
   warning; /* WARN_LOW_BALANCE / WARN_OUT_OF_BALANCE / WARN_DEBT / RENTAL_NOTI_LIMIT */
   int debtAmount = 0;
+  /* Danger-alert switch state mirrored on the device via cmd topic. */
+  bool dangerNotiEnabled = true;
   PricingConfig pricing = const PricingConfig(
     pricePerHour: FeatureConfig.rentalDefaultPricePerHour,
     depositAmount: FeatureConfig.rentalDefaultDepositAmount,
@@ -206,6 +208,26 @@ class MobileRideProvider extends ChangeNotifier {
     );
   }
 
+  /* Toggle the device's danger-alert buzzer/notification via the cmd topic. */
+  void setDangerNoti(bool enabled) {
+    if (_bikeId == null) return;
+    dangerNotiEnabled = enabled;
+    _mqtt.publish(
+      MqttTopics.deviceCmd(_bikeId!),
+      ProtocolCodec.build(kCmdSetDangerNoti, [enabled ? '1' : '0']),
+    );
+    notifyListeners();
+  }
+
+  /* Ask the device to signal its location (find-my-bike). */
+  void findVehicle() {
+    if (_bikeId == null) return;
+    _mqtt.publish(
+      MqttTopics.deviceCmd(_bikeId!),
+      ProtocolCodec.build(kCmdWhere),
+    );
+  }
+
   void clearWarning() {
     warning = null;
     notifyListeners();
@@ -259,6 +281,7 @@ class MobileRideProvider extends ChangeNotifier {
     lastBill = null;
     lastError = null;
     warning = null;
+    dangerNotiEnabled = true;
   }
 
   void _subscribeWebApp(String bikeId) {
