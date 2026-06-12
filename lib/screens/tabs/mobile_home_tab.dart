@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/error_codes.dart';
 import '../../models/home_feed_item.dart';
+import '../../providers/ble_relay_provider.dart';
 import '../../providers/mobile_auth_provider.dart';
 import '../../providers/mobile_ride_provider.dart';
 import '../../services/protocol_codec.dart';
@@ -30,7 +31,8 @@ const String kCurrencyLocale = 'vi_VN';
 const String kCurrencySymbol = 'đ';
 const String kTuoiTreVehicleUrl = 'https://tuoitre.vn/xe.htm';
 const String kTuoiTreWeatherUrl = 'https://tuoitre.vn/thoi-tiet.htm';
-const String kOfficialWeatherUrl = 'https://nchmf.gov.vn/Kttvsite/vi-VN/1/thoi-tiet-1-15.html';
+const String kOfficialWeatherUrl =
+    'https://nchmf.gov.vn/Kttvsite/vi-VN/1/thoi-tiet-1-15.html';
 
 /* Enums -------------------------------------------------------------- */
 /* Typedef / Function types ------------------------------------------ */
@@ -86,6 +88,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     final AppStrings t = context.tr;
     final MobileAuthProvider auth = context.watch<MobileAuthProvider>();
     final MobileRideProvider ride = context.watch<MobileRideProvider>();
+    final BleRelayState bleState = context.watch<BleRelayProvider>().state;
     final user = auth.currentUser;
 
     if (user == null) return const SizedBox.shrink();
@@ -104,35 +107,49 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
           Padding(padding: EdgeInsets.only(right: 12), child: LanguageSwitch()),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildHeader(
-            user.fullName,
-            user.email ?? user.phone ?? user.employeeCode,
-            user.balance,
-            ride.debtAmount,
-            money,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC), Colors.white],
           ),
-          const SizedBox(height: 16),
-          if (!ride.hasActiveSession && ride.phase != RentalPhase.starting) ...[
-            _buildRentalTimeCard(ride, money, t),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildHeader(
+              user.fullName,
+              user.email ?? user.phone ?? user.employeeCode,
+              user.balance,
+              ride.debtAmount,
+              money,
+            ),
+            if (bleState != BleRelayState.idle) ...[
+              const SizedBox(height: 12),
+              _buildBleRelayChip(bleState),
+            ],
             const SizedBox(height: 16),
+            if (!ride.hasActiveSession &&
+                ride.phase != RentalPhase.starting) ...[
+              _buildRentalTimeCard(ride, money, t),
+              const SizedBox(height: 16),
+            ],
+            _buildQuickActions(t),
+            const SizedBox(height: 20),
+            if (ride.warning != null) _buildWarningCard(ride),
+            if (ride.lastError != null && !ride.hasActiveSession)
+              _buildErrorCard(ride),
+            const SizedBox(height: 12),
+            _buildRideCard(ride),
+            const SizedBox(height: 16),
+            _buildDailyBriefingSection(t),
+            const SizedBox(height: 16),
+            _buildDailyNoticeOfferSection(t),
+            const SizedBox(height: 16),
+            _buildUsageGuideCard(t),
           ],
-          _buildQuickActions(t),
-          const SizedBox(height: 20),
-          if (ride.warning != null) _buildWarningCard(ride),
-          if (ride.lastError != null && !ride.hasActiveSession)
-            _buildErrorCard(ride),
-          const SizedBox(height: 12),
-          _buildRideCard(ride),
-          const SizedBox(height: 16),
-          _buildDailyBriefingSection(t),
-          const SizedBox(height: 16),
-          _buildDailyNoticeOfferSection(t),
-          const SizedBox(height: 16),
-          _buildUsageGuideCard(t),
-        ],
+        ),
       ),
     );
   }
@@ -184,31 +201,76 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     NumberFormat money,
   ) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [kHeaderGradientStart, kHeaderGradientEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8), Color(0xFF06B6D4)],
         ),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: kHeaderGradientStart.withValues(alpha: 0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            context.tr.hello(fullName),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.electric_bike,
+                  color: Colors.white,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr.hello(fullName),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      userCode,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(userCode, style: const TextStyle(color: Colors.white70)),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
                 child: _QuickCard(
+                  icon: Icons.account_balance_wallet_outlined,
                   title: context.tr.balance,
                   value: money.format(balance),
                 ),
@@ -216,11 +278,55 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               const SizedBox(width: 12),
               Expanded(
                 child: _QuickCard(
+                  icon: Icons.receipt_long_outlined,
                   title: context.tr.debt,
                   value: money.format(debtAmount),
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBleRelayChip(BleRelayState state) {
+    final AppStrings t = context.tr;
+    final (String label, IconData icon, Color color) = switch (state) {
+      BleRelayState.scanning => (
+        t.bleScanning,
+        Icons.bluetooth_searching,
+        const Color(0xFF475569),
+      ),
+      BleRelayState.connecting => (
+        t.bleConnecting,
+        Icons.bluetooth_connected,
+        const Color(0xFFF97316),
+      ),
+      BleRelayState.relaying => (
+        t.bleRelaying,
+        Icons.bluetooth_connected,
+        const Color(0xFF16A34A),
+      ),
+      BleRelayState.idle => ('', Icons.bluetooth_disabled, Colors.grey),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: color, fontWeight: FontWeight.w800),
+            ),
           ),
         ],
       ),
@@ -236,49 +342,92 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.045),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            t.enterRentalTime,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: kHeaderGradientStart.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.timer_outlined,
+                  color: kHeaderGradientStart,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  t.enterRentalTime,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextField(
             controller: _hoursCtrl,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: t.rentalHoursLabel,
               hintText: t.hourHint,
-              border: const OutlineInputBorder(),
-              prefixIcon: const Icon(Icons.timer_outlined),
+              prefixIcon: const Icon(Icons.schedule),
             ),
             onChanged: (_) => _applyHours(context),
             onSubmitted: (_) => _applyHours(context),
           ),
           const SizedBox(height: 14),
-          Text(
-            t.selectedRentalHours(ride.selectedRentalHours),
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _SoftInfoChip(
+                icon: Icons.timelapse,
+                label: t.selectedRentalHours(ride.selectedRentalHours),
+                color: const Color(0xFF2563EB),
+              ),
+              _SoftInfoChip(
+                icon: Icons.payments_outlined,
+                label: t.rentalFee(money.format(ride.selectedUsageFee)),
+                color: const Color(0xFF16A34A),
+              ),
+              _SoftInfoChip(
+                icon: Icons.lock_outline,
+                label: t.depositFee(money.format(ride.pricing.depositAmount)),
+                color: const Color(0xFFF97316),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            t.rentalFee(money.format(ride.selectedUsageFee)),
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            t.depositFee(money.format(ride.pricing.depositAmount)),
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            t.requiredTotal(money.format(ride.selectedTotalRequired)),
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: kHeaderGradientStart,
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: kHeaderGradientStart.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Text(
+              t.requiredTotal(money.format(ride.selectedTotalRequired)),
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                color: kHeaderGradientStart,
+              ),
             ),
           ),
         ],
@@ -294,8 +443,11 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const WalletTopupScreen()),
             ),
-            icon: const Icon(Icons.qr_code_2),
-            label: Text(t.topUp),
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            label: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(t.topUp),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -308,7 +460,10 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               ).push(MaterialPageRoute(builder: (_) => const QrScanScreen()));
             },
             icon: const Icon(Icons.qr_code_scanner),
-            label: Text(t.scanQr),
+            label: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(t.scanQr),
+            ),
           ),
         ),
       ],
@@ -316,22 +471,19 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
   }
 
   Widget _buildWarningCard(MobileRideProvider ride) {
+    final AppStrings t = context.tr;
     final String w = ride.warning!;
     final bool severe = w == kEvtWarnOutOfBalance || w == kErrOutOfParkingZone;
     final String title = switch (w) {
-      kEvtWarnLowBalance => 'Balance running low',
-      kEvtWarnOutOfBalance => 'Out of balance — please return the bike',
-      kErrOutOfParkingZone => 'Vehicle is outside a valid parking zone',
-      _ => 'Warning',
+      kEvtWarnLowBalance => t.balanceRunningLowTitle,
+      kEvtWarnOutOfBalance => t.outOfBalanceTitle,
+      kErrOutOfParkingZone => t.outOfParkingZoneTitle,
+      _ => t.warning,
     };
     final String body = switch (w) {
-      kEvtWarnLowBalance =>
-        'You only have enough for the current block. Please top up.',
-      kEvtWarnOutOfBalance =>
-        'Return the bike to a parking zone within 15 minutes to avoid '
-            'a penalty.',
-      kErrOutOfParkingZone =>
-        'Move the bike to the nearest parking zone to end the ride.',
+      kEvtWarnLowBalance => t.lowBalanceBody,
+      kEvtWarnOutOfBalance => t.outOfBalanceBody,
+      kErrOutOfParkingZone => t.outOfParkingZoneBody,
       _ => '',
     };
     return Padding(
@@ -361,8 +513,8 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
         color: Colors.red.shade50,
         child: ListTile(
           leading: const Icon(Icons.error, color: Colors.red),
-          title: const Text('Could not start the ride'),
-          subtitle: Text(ErrorMessages.describe(ride.lastError!)),
+          title: Text(context.tr.couldNotStartRide),
+          subtitle: Text(context.tr.errorDescription(ride.lastError!)),
           trailing: IconButton(
             icon: const Icon(Icons.close),
             onPressed: ride.clearError,
@@ -375,20 +527,54 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
   Widget _buildRideCard(MobileRideProvider ride) {
     if (!ride.hasActiveSession && ride.phase != RentalPhase.starting) {
       return Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.045),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              context.tr.noRideTitle,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: kHeaderGradientStart.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(
+                Icons.pedal_bike_outlined,
+                color: kHeaderGradientStart,
+                size: 30,
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(context.tr.noRideDesc),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr.noRideTitle,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    context.tr.noRideDesc,
+                    style: const TextStyle(color: Colors.black54, height: 1.35),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       );
@@ -399,71 +585,135 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(26),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.2),
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
             ),
-            SizedBox(width: 14),
-            Text('Unlocking the bike...', style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 14),
+            Text(
+              context.tr.unlockingBike,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
           ],
         ),
       );
     }
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F766E).withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            ride.isPaused
-                ? 'Bike ${ride.currentBikeId ?? ''} — ${context.tr.pause}'
-                : context.tr.vehicleInUse('Bike ${ride.currentBikeId ?? ''}'),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(19),
+                ),
+                child: const Icon(
+                  Icons.electric_bike,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ride.isPaused
+                          ? '${context.tr.vehicleLabel(ride.currentBikeId ?? '')} — ${context.tr.pause}'
+                          : context.tr.vehicleInUse(
+                              context.tr.vehicleLabel(ride.currentBikeId ?? ''),
+                            ),
+                      style: const TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr.remainingTimeDesc,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 18),
           Text(
             _formatSeconds(ride.liveRemainingSeconds),
             style: const TextStyle(
-              fontSize: 40,
+              fontSize: 42,
               fontWeight: FontWeight.w900,
-              color: kHeaderGradientStart,
+              color: Colors.white,
+              letterSpacing: 1.2,
             ),
           ),
           if (ride.isOverdue) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3CD),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFFFFC107)),
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                'Quá hạn ${_formatOverdue(ride.overdueSeconds)}',
+                context.tr.overdueText(_formatOverdue(ride.overdueSeconds)),
                 style: const TextStyle(
-                  color: Color(0xFF8A6D00),
-                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
           ],
-          const SizedBox(height: 6),
-          Text(
-            ride.isPaused
-                ? '${context.tr.pause}: ${ride.effectivePricePerHour}đ/hour.'
-                : '${context.tr.pricePerHour}: ${ride.pricing.pricePerHour}đ/hour.',
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Text(
+              ride.isPaused
+                  ? '${context.tr.pause}: ${context.tr.pricePerHourAmount(ride.effectivePricePerHour)}.'
+                  : '${context.tr.pricePerHour}: ${context.tr.pricePerHourAmount(ride.pricing.pricePerHour)}.',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -493,7 +743,6 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
       ),
     );
   }
-
 
   Widget _buildDailyBriefingSection(AppStrings t) {
     return Container(
@@ -534,12 +783,18 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
                   children: [
                     Text(
                       t.dailyBriefingTitle,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       t.dailyBriefingSubtitle(_todayLabel()),
-                      style: const TextStyle(color: Colors.black54, height: 1.25),
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        height: 1.25,
+                      ),
                     ),
                   ],
                 ),
@@ -550,19 +805,31 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
           FutureBuilder<List<HomeFeedItem>>(
             future: _homeFeedFuture,
             builder: (context, snapshot) {
-              final List<HomeFeedItem> remoteItems = snapshot.data ?? const <HomeFeedItem>[];
-              final List<HomeFeedItem> fallbackItems = _fallbackDailyFeedItems(t);
+              final List<HomeFeedItem> remoteItems =
+                  snapshot.data ?? const <HomeFeedItem>[];
+              final List<HomeFeedItem> fallbackItems = _fallbackDailyFeedItems(
+                t,
+              );
               final List<HomeFeedItem> items = <HomeFeedItem>[
                 ...remoteItems.take(4),
-                if (!remoteItems.any((item) => item.kind == HomeFeedKind.traffic))
-                  fallbackItems.firstWhere((item) => item.kind == HomeFeedKind.traffic),
-                if (!remoteItems.any((item) => item.kind == HomeFeedKind.weather))
-                  fallbackItems.firstWhere((item) => item.kind == HomeFeedKind.weather),
+                if (!remoteItems.any(
+                  (item) => item.kind == HomeFeedKind.traffic,
+                ))
+                  fallbackItems.firstWhere(
+                    (item) => item.kind == HomeFeedKind.traffic,
+                  ),
+                if (!remoteItems.any(
+                  (item) => item.kind == HomeFeedKind.weather,
+                ))
+                  fallbackItems.firstWhere(
+                    (item) => item.kind == HomeFeedKind.weather,
+                  ),
               ].take(4).toList(growable: false);
 
               return Column(
                 children: [
-                  if (snapshot.connectionState == ConnectionState.waiting && remoteItems.isEmpty)
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      remoteItems.isEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Row(
@@ -584,7 +851,9 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
                       accentColor: _feedKindColor(items[i].kind),
                       onTap: () => _openExternalUrl(items[i].url),
                       readMoreText: t.readMore,
-                      liveText: items[i].isLive ? t.liveUpdated : t.dailyUpdated,
+                      liveText: items[i].isLive
+                          ? t.liveUpdated
+                          : t.dailyUpdated,
                     ),
                     if (i != items.length - 1) const SizedBox(height: 10),
                   ],
@@ -594,14 +863,17 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => _openExternalUrl(kTuoiTreVehicleUrl),
-                          icon: const Icon(Icons.directions_car_filled_outlined),
+                          icon: const Icon(
+                            Icons.directions_car_filled_outlined,
+                          ),
                           label: Text(t.openTrafficNews),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _openExternalUrl(kOfficialWeatherUrl),
+                          onPressed: () =>
+                              _openExternalUrl(kOfficialWeatherUrl),
                           icon: const Icon(Icons.cloud_outlined),
                           label: Text(t.openWeatherForecast),
                         ),
@@ -646,9 +918,9 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     return InkWell(
       borderRadius: BorderRadius.circular(22),
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const UsageGuideScreen()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const UsageGuideScreen()));
       },
       child: Container(
         padding: const EdgeInsets.all(18),
@@ -674,7 +946,11 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
                 color: Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: const Icon(Icons.menu_book_outlined, color: Colors.white, size: 30),
+              child: const Icon(
+                Icons.menu_book_outlined,
+                color: Colors.white,
+                size: 30,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -711,22 +987,26 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
         ? <HomeFeedItem>[
             const HomeFeedItem(
               kind: HomeFeedKind.traffic,
-              title: 'Gợi ý di chuyển hôm nay: ưu tiên đường nội bộ và làn xe chậm',
-              summary: 'Trước khi thuê xe, hãy xem nhanh tình trạng giao thông và chọn tuyến ít giao cắt để đi an toàn hơn.',
+              title:
+                  'Gợi ý di chuyển hôm nay: ưu tiên đường nội bộ và làn xe chậm',
+              summary:
+                  'Trước khi thuê xe, hãy xem nhanh tình trạng giao thông và chọn tuyến ít giao cắt để đi an toàn hơn.',
               url: kTuoiTreVehicleUrl,
               source: 'Tuổi Trẻ Online',
             ),
             const HomeFeedItem(
               kind: HomeFeedKind.traffic,
-              title: 'Giờ cao điểm: nên kiểm tra trạm trả xe trước khi xuất phát',
-              summary: 'Nếu đi vào buổi sáng hoặc chiều tối, hãy xem trạm gần điểm đến để tránh mất thời gian tìm chỗ trả xe.',
+              title:
+                  'Giờ cao điểm: nên kiểm tra trạm trả xe trước khi xuất phát',
+              summary:
+                  'Nếu đi vào buổi sáng hoặc chiều tối, hãy xem trạm gần điểm đến để tránh mất thời gian tìm chỗ trả xe.',
               url: kTuoiTreVehicleUrl,
               source: 'Tuổi Trẻ Online',
             ),
             const HomeFeedItem(
               kind: HomeFeedKind.traffic,
               title: 'An toàn khi qua giao lộ: giảm tốc và quan sát hai bên',
-              summary: 'Xe đạp nhỏ và dễ bị khuất tầm nhìn. Đừng tin hoàn toàn vào việc người khác đã thấy bạn, đời vốn không tử tế đến thế.',
+              summary: 'Hãy luôn chạy xe thật cẩn thận bạn nhé !',
               url: kTuoiTreVehicleUrl,
               source: 'Tuổi Trẻ Online',
             ),
@@ -735,21 +1015,24 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
             const HomeFeedItem(
               kind: HomeFeedKind.traffic,
               title: 'Today route tip: prefer inner streets and slow lanes',
-              summary: 'Before renting a bike, quickly check traffic and choose a route with fewer crossings.',
+              summary:
+                  'Before renting a bike, quickly check traffic and choose a route with fewer crossings.',
               url: kTuoiTreVehicleUrl,
               source: 'Tuổi Trẻ Online',
             ),
             const HomeFeedItem(
               kind: HomeFeedKind.traffic,
               title: 'Peak hours: check the return station before leaving',
-              summary: 'For morning or evening rides, check a nearby station at your destination first.',
+              summary:
+                  'For morning or evening rides, check a nearby station at your destination first.',
               url: kTuoiTreVehicleUrl,
               source: 'Tuổi Trẻ Online',
             ),
             const HomeFeedItem(
               kind: HomeFeedKind.traffic,
               title: 'Intersection safety: slow down and look both ways',
-              summary: 'Bikes are small and easy to miss. Do not assume everyone has seen you.',
+              summary:
+                  'Bikes are small and easy to miss. Do not assume everyone has seen you.',
               url: kTuoiTreVehicleUrl,
               source: 'Tuổi Trẻ Online',
             ),
@@ -759,22 +1042,27 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
         ? <HomeFeedItem>[
             const HomeFeedItem(
               kind: HomeFeedKind.weather,
-              title: 'Dự báo thời tiết hôm nay: kiểm tra mưa dông trước khi thuê xe',
-              summary: 'Nếu trời có mưa lớn hoặc gió mạnh, hãy cân nhắc lộ trình ngắn và trả xe sớm tại trạm gần nhất.',
+              title:
+                  'Dự báo thời tiết hôm nay: kiểm tra mưa dông trước khi thuê xe',
+              summary:
+                  'Nếu trời có mưa lớn hoặc gió mạnh, hãy cân nhắc lộ trình ngắn và trả xe sớm tại trạm gần nhất.',
               url: kOfficialWeatherUrl,
               source: 'Trung tâm Dự báo KTTV Quốc gia',
             ),
             const HomeFeedItem(
               kind: HomeFeedKind.weather,
               title: 'Nắng nóng: mang nước và tránh chạy xe quá lâu giữa trưa',
-              summary: 'Thời tiết oi bức dễ làm mất sức. Chuyến ngắn, đội mũ và nghỉ khi cần, nghe đơn giản mà nhiều người vẫn quên.',
+              summary:
+                  'Thời tiết oi bức dễ làm mất sức. Chuyến ngắn, đội mũ và nghỉ khi cần, nghe đơn giản mà nhiều người vẫn quên.',
               url: kOfficialWeatherUrl,
               source: 'Trung tâm Dự báo KTTV Quốc gia',
             ),
             const HomeFeedItem(
               kind: HomeFeedKind.weather,
-              title: 'Chiều tối dễ có mưa: nhớ kiểm tra phanh trước khi rời trạm',
-              summary: 'Mặt đường ướt làm quãng đường phanh dài hơn. Chậm một chút còn hơn biểu diễn vật lý không tự nguyện.',
+              title:
+                  'Chiều tối dễ có mưa: nhớ kiểm tra phanh trước khi rời trạm',
+              summary:
+                  'Mặt đường ướt làm quãng đường phanh dài hơn. Chậm một chút còn hơn biểu diễn vật lý không tự nguyện.',
               url: kOfficialWeatherUrl,
               source: 'Trung tâm Dự báo KTTV Quốc gia',
             ),
@@ -783,21 +1071,24 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
             const HomeFeedItem(
               kind: HomeFeedKind.weather,
               title: 'Today weather: check rain and storms before renting',
-              summary: 'If heavy rain or strong wind is expected, choose a short route and return the bike earlier.',
+              summary:
+                  'If heavy rain or strong wind is expected, choose a short route and return the bike earlier.',
               url: kOfficialWeatherUrl,
               source: 'National Center for Hydro-Meteorological Forecasting',
             ),
             const HomeFeedItem(
               kind: HomeFeedKind.weather,
               title: 'Hot weather: bring water and avoid long noon rides',
-              summary: 'Heat drains energy quickly. Keep the ride short, wear a hat, and rest when needed.',
+              summary:
+                  'Heat drains energy quickly. Keep the ride short, wear a hat, and rest when needed.',
               url: kOfficialWeatherUrl,
               source: 'National Center for Hydro-Meteorological Forecasting',
             ),
             const HomeFeedItem(
               kind: HomeFeedKind.weather,
               title: 'Evening rain risk: check brakes before leaving',
-              summary: 'Wet roads increase braking distance. Slow down a little. Physics is not interested in excuses.',
+              summary:
+                  'Wet roads increase braking distance. Slow down a little. Physics is not interested in excuses.',
               url: kOfficialWeatherUrl,
               source: 'National Center for Hydro-Meteorological Forecasting',
             ),
@@ -817,19 +1108,22 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               icon: Icons.battery_charging_full,
               color: Color(0xFF2563EB),
               title: 'Nhắc nhẹ hôm nay',
-              body: 'Chọn xe còn trên 30% pin để chuyến đi mượt hơn. Xe hết pin giữa đường thì thơ mộng lắm, nếu bạn thích đẩy bộ.',
+              body:
+                  'Chọn xe còn trên 30% pin để chuyến đi mượt hơn. Xe hết pin giữa đường thì thơ mộng lắm, nếu bạn thích đẩy bộ.',
             ),
             const _HomeHighlight(
               icon: Icons.health_and_safety_outlined,
               color: Color(0xFF16A34A),
               title: 'Kiểm tra an toàn',
-              body: 'Trước khi chạy, bóp thử phanh và nhìn nhanh bánh xe. Mất 5 giây, cứu được cả một buổi chiều cáu bẳn.',
+              body:
+                  'Trước khi chạy, bóp thử phanh và nhìn nhanh bánh xe. Mất 5 giây, cứu được cả một buổi chiều cáu bẳn.',
             ),
             const _HomeHighlight(
               icon: Icons.local_parking_outlined,
               color: Color(0xFF7C3AED),
               title: 'Trả xe đúng trạm',
-              body: 'Kết thúc chuyến đi tại trạm hợp lệ để tránh lỗi trả xe và phí phát sinh không đáng có.',
+              body:
+                  'Kết thúc chuyến đi tại trạm hợp lệ để tránh lỗi trả xe và phí phát sinh không đáng có.',
             ),
           ]
         : <_HomeHighlight>[
@@ -837,19 +1131,22 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               icon: Icons.battery_charging_full,
               color: Color(0xFF2563EB),
               title: 'Today reminder',
-              body: 'Pick a bike above 30% battery for a smoother ride. Pushing a dead bike is character development nobody asked for.',
+              body:
+                  'Pick a bike above 30% battery for a smoother ride. Pushing a dead bike is character development nobody asked for.',
             ),
             const _HomeHighlight(
               icon: Icons.health_and_safety_outlined,
               color: Color(0xFF16A34A),
               title: 'Safety check',
-              body: 'Test the brakes and glance at the wheels before riding. Five seconds, fewer regrets.',
+              body:
+                  'Test the brakes and glance at the wheels before riding. Five seconds, fewer regrets.',
             ),
             const _HomeHighlight(
               icon: Icons.local_parking_outlined,
               color: Color(0xFF7C3AED),
               title: 'Return at a valid station',
-              body: 'End your trip at a valid station to avoid return errors and unnecessary extra fees.',
+              body:
+                  'End your trip at a valid station to avoid return errors and unnecessary extra fees.',
             ),
           ];
 
@@ -859,19 +1156,22 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               icon: Icons.card_giftcard,
               color: Color(0xFFF97316),
               title: 'Ưu đãi hôm nay',
-              body: 'Gợi ý: thuê 1 giờ cho chuyến ngắn trong khuôn viên, vừa đủ đi việc cần mà không khóa tiền quá lâu.',
+              body:
+                  'Gợi ý: thuê 1 giờ cho chuyến ngắn trong khuôn viên, vừa đủ đi việc cần mà không khóa tiền quá lâu.',
             ),
             const _HomeHighlight(
               icon: Icons.savings_outlined,
               color: Color(0xFFDB2777),
               title: 'Mẹo tiết kiệm',
-              body: 'Canh sẵn trạm trả xe gần điểm đến trước khi quét QR. Đi lạc rồi đổ lỗi cho app thì app cũng biết buồn đấy.',
+              body:
+                  'Canh sẵn trạm trả xe gần điểm đến trước khi quét QR. Đi lạc rồi đổ lỗi cho app thì app cũng biết buồn đấy.',
             ),
             const _HomeHighlight(
               icon: Icons.stars_outlined,
               color: Color(0xFF0891B2),
               title: 'Chuyến đi thông minh',
-              body: 'Dùng tab Trạm xe để chọn xe gần nhất, sau đó mới quét QR. Quy trình nhỏ, đỡ rối lớn.',
+              body:
+                  'Dùng tab Trạm xe để chọn xe gần nhất, sau đó mới quét QR. Quy trình nhỏ, đỡ rối lớn.',
             ),
           ]
         : <_HomeHighlight>[
@@ -879,19 +1179,22 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
               icon: Icons.card_giftcard,
               color: Color(0xFFF97316),
               title: 'Today offer',
-              body: 'Tip: choose 1 hour for short campus rides, enough for quick errands without locking too much balance.',
+              body:
+                  'Tip: choose 1 hour for short campus rides, enough for quick errands without locking too much balance.',
             ),
             const _HomeHighlight(
               icon: Icons.savings_outlined,
               color: Color(0xFFDB2777),
               title: 'Saving tip',
-              body: 'Check a return station near your destination before scanning QR. Less wandering, fewer app-blaming ceremonies.',
+              body:
+                  'Check a return station near your destination before scanning QR. Less wandering, fewer app-blaming ceremonies.',
             ),
             const _HomeHighlight(
               icon: Icons.stars_outlined,
               color: Color(0xFF0891B2),
               title: 'Smart ride',
-              body: 'Use the Stations tab to find the nearest bike first, then scan QR. Tiny process, fewer disasters.',
+              body:
+                  'Use the Stations tab to find the nearest bike first, then scan QR. Tiny process, fewer disasters.',
             ),
           ];
 
@@ -945,30 +1248,97 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
 }
 
 class _QuickCard extends StatelessWidget {
+  final IconData icon;
   final String title;
   final String value;
 
-  const _QuickCard({required this.title, required this.value});
+  const _QuickCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(title, style: const TextStyle(color: Colors.white70)),
-          const SizedBox(height: 4),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SoftInfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _SoftInfoChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 17),
+          const SizedBox(width: 7),
           Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
+            label,
+            style: TextStyle(
+              color: color,
               fontWeight: FontWeight.w800,
-              fontSize: 18,
+              fontSize: 12.5,
             ),
           ),
         ],
@@ -1012,7 +1382,10 @@ class _DailyFeedCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: accentColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(999),
@@ -1039,7 +1412,11 @@ class _DailyFeedCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               item.title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, height: 1.25),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                height: 1.25,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -1060,7 +1437,10 @@ class _DailyFeedCard extends StatelessWidget {
                 ),
                 Text(
                   readMoreText,
-                  style: TextStyle(color: accentColor, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    color: accentColor,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 Icon(Icons.chevron_right, color: accentColor),
               ],
@@ -1112,7 +1492,10 @@ class _HighlightCard extends StatelessWidget {
               children: [
                 Text(
                   highlight.title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 5),
                 Text(

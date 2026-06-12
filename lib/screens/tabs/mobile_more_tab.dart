@@ -16,8 +16,11 @@ import '../pricing_screen.dart';
 import '../usage_guide_screen.dart';
 
 /* Constants ---------------------------------------------------------- */
-const Color kHeaderGradientStart = Color(0xFF1557FF);
-const Color kHeaderGradientEnd = Color(0xFF2F80ED);
+const Color kHeaderGradientStart = Color(0xFF2563EB);
+const Color kHeaderGradientEnd = Color(0xFF06B6D4);
+const Color kMoreViolet = Color(0xFF7C3AED);
+const Color kMoreOrange = Color(0xFFF97316);
+const Color kMoreGreen = Color(0xFF16A34A);
 
 /* Public classes ----------------------------------------------------- */
 class MobileMoreTab extends StatelessWidget {
@@ -34,57 +37,93 @@ class MobileMoreTab extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(t.more)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [kHeaderGradientStart, kHeaderGradientEnd],
-              ),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  radius: 34,
-                  child: Icon(Icons.person, size: 36),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.fullName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user.email ?? user.phone ?? user.employeeCode,
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC), Colors.white],
           ),
-          const SizedBox(height: 18),
-          Card(
-            child: Padding(
+        ),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [kHeaderGradientStart, kHeaderGradientEnd],
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: kHeaderGradientStart.withValues(alpha: 0.18),
+                    blurRadius: 24,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Colors.white.withValues(alpha: 0.22),
+                    child: const Icon(Icons.person, size: 38, color: Colors.white),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.fullName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          user.email ?? user.phone ?? user.employeeCode,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
               padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.language, color: kHeaderGradientStart),
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: kHeaderGradientStart.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: const Icon(Icons.language, color: kHeaderGradientStart),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -94,13 +133,13 @@ class MobileMoreTab extends StatelessWidget {
                               t.language,
                               style: const TextStyle(
                                 fontSize: 18,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 3),
                             Text(
                               t.languageSubtitle,
-                              style: const TextStyle(color: Colors.black54),
+                              style: const TextStyle(color: Colors.black54, height: 1.3),
                             ),
                           ],
                         ),
@@ -130,48 +169,99 @@ class MobileMoreTab extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          ListTile(
-            leading: const Icon(Icons.lock_reset),
-            title: Text(t.changePassword),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
-              );
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.price_change),
-            title: Text(t.priceList),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PricingScreen()),
-              );
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.menu_book_outlined),
-            title: Text(t.usageGuideTitle),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const UsageGuideScreen()),
-              );
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: Text(t.logout),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.read<MobileAuthProvider>().logout(),
-          ),
-        ],
+            const SizedBox(height: 16),
+            _MenuTile(
+              icon: Icons.lock_reset,
+              color: kMoreViolet,
+              title: t.changePassword,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _MenuTile(
+              icon: Icons.price_change,
+              color: kMoreOrange,
+              title: t.priceList,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PricingScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _MenuTile(
+              icon: Icons.menu_book_outlined,
+              color: kMoreGreen,
+              title: t.usageGuideTitle,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const UsageGuideScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _MenuTile(
+              icon: Icons.logout,
+              color: Colors.red,
+              title: t.logout,
+              onTap: () => context.read<MobileAuthProvider>().logout(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final VoidCallback onTap;
+
+  const _MenuTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: color.withValues(alpha: 0.12)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.black38),
+          ],
+        ),
       ),
     );
   }

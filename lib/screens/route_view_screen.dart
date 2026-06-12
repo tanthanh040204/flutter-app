@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/mobile_history_route.dart';
 
 /* Constants ---------------------------------------------------------- */
@@ -26,12 +27,13 @@ class RouteViewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     final LatLng center = route.points.isNotEmpty
         ? route.points.first
         : kDefaultRouteCenter;
 
     return Scaffold(
-      appBar: AppBar(title: Text(route.buttonLabel)),
+      appBar: AppBar(title: Text(_routeButtonLabel(route, t))),
       body: FlutterMap(
         options: MapOptions(initialCenter: center, initialZoom: 15),
         children: [
@@ -74,6 +76,19 @@ class RouteViewScreen extends StatelessWidget {
       ),
     );
   }
+
+  String _routeButtonLabel(MobileHistoryRoute route, AppStrings t) {
+    final String start =
+        '${_two(route.startAt.hour)}:${_two(route.startAt.minute)}'
+        ' ${_two(route.startAt.day)}/${_two(route.startAt.month)}';
+    if (route.endAt == null) return t.routeAt(start);
+    final String end =
+        '${_two(route.endAt!.hour)}:${_two(route.endAt!.minute)}'
+        ' ${_two(route.endAt!.day)}/${_two(route.endAt!.month)}';
+    return t.routeFromTo(start, end);
+  }
+
+  String _two(int n) => n.toString().padLeft(2, '0');
 }
 
 /* Private classes ---------------------------------------------------- */

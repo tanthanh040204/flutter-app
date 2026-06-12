@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 
 import '../config/feature_conf.dart';
 import '../config/mqtt_config.dart';
+import '../models/device_telemetry.dart';
 import '../models/error_codes.dart';
 import '../models/mobile_user_profile.dart';
 import '../models/pricing_config.dart';
@@ -53,6 +54,8 @@ class MobileRideProvider extends ChangeNotifier {
   String?
   warning; /* WARN_LOW_BALANCE / WARN_OUT_OF_BALANCE / WARN_DEBT / RENTAL_NOTI_LIMIT */
   int debtAmount = 0;
+  /* Danger-alert switch state mirrored on the device via cmd topic. */
+  bool dangerNotiEnabled = true;
   PricingConfig pricing = const PricingConfig(
     pricePerHour: FeatureConfig.rentalDefaultPricePerHour,
     depositAmount: FeatureConfig.rentalDefaultDepositAmount,
@@ -77,6 +80,10 @@ class MobileRideProvider extends ChangeNotifier {
     final int overdue = total - selected;
     return block - (overdue % block);
   }
+
+  /* The latest telemetry for the current bike, if any. */
+  DeviceTelemetry? get latestTelemetry =>
+      _bikeId != null ? _telemetry?.telemetryFor(_bikeId!) : null;
 
   /* Total seconds the rental has gone past the originally-selected
    * window. 0 while still within the pre-paid blocks. */
@@ -201,6 +208,26 @@ class MobileRideProvider extends ChangeNotifier {
     );
   }
 
+  /* Toggle the device's danger-alert buzzer/notification via the cmd topic. */
+  void setDangerNoti(bool enabled) {
+    if (_bikeId == null) return;
+    dangerNotiEnabled = enabled;
+    _mqtt.publish(
+      MqttTopics.deviceCmd(_bikeId!),
+      ProtocolCodec.build(kCmdSetDangerNoti, [enabled ? '1' : '0']),
+    );
+    notifyListeners();
+  }
+
+  /* Ask the device to signal its location (find-my-bike). */
+  void findVehicle() {
+    if (_bikeId == null) return;
+    _mqtt.publish(
+      MqttTopics.deviceCmd(_bikeId!),
+      ProtocolCodec.build(kCmdWhere),
+    );
+  }
+
   void clearWarning() {
     warning = null;
     notifyListeners();
@@ -254,6 +281,7 @@ class MobileRideProvider extends ChangeNotifier {
     lastBill = null;
     lastError = null;
     warning = null;
+    dangerNotiEnabled = true;
   }
 
   void _subscribeWebApp(String bikeId) {

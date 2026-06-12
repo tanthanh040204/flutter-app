@@ -18,12 +18,17 @@ class FeatureConfig {
   static const bool enableFirebase = true;
   static const bool enableNotifications = true;
 
+  static const bool enableBleRelay = true;
+  static const String bleDebugForceBikeId = '';
+
   /* --- Debug toggles ------------------------------------------- */
   static const bool enableDebugAddToken = false;
   static const bool debugMqttLog = true;
   static const bool debugTelemetryLog = true;
   static const bool debugRideLog = true;
   static const bool debugWalletLog = true;
+  static const bool debugBleLog = true;
+  static const bool debugBleScanLog = false;
 
   /* --- Rental tunables ----------------------------------------- */
   static const int rentalBillingBlockSeconds = 3600;

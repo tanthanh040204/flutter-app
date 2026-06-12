@@ -446,7 +446,9 @@ class MobileUserRepo {
         .doc(uid);
     final DocumentSnapshot<Map<String, dynamic>> snap = await ref.get();
     if (snap.exists) {
-      return _syncBalanceFromRentalUsers(_profileFromDoc(snap));
+      final MobileUserProfile existing = _profileFromDoc(snap);
+      await _mirrorIdentityToRentalUsers(existing);
+      return _syncBalanceFromRentalUsers(existing);
     }
 
     final MobileUserProfile profile = MobileUserProfile(
@@ -1073,8 +1075,30 @@ class MobileUserRepo {
     );
     await db.collection(kColRentalUsers).doc(wireUserId).set({
       'userId': wireUserId,
+      'uid': profile.uid,
       'tokens': profile.balance,
       'displayName': profile.fullName,
+      'phone': profile.phone,
+      'email': profile.email,
+      'isActive': profile.isActive,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> _mirrorIdentityToRentalUsers(MobileUserProfile profile) async {
+    final FirebaseFirestore? db = _db;
+    if (db == null) return;
+    final String wireUserId = buildWireUserId(
+      uid: profile.uid,
+      phone: profile.phone,
+      email: profile.email,
+    );
+    await db.collection(kColRentalUsers).doc(wireUserId).set({
+      'userId': wireUserId,
+      'uid': profile.uid,
+      'displayName': profile.fullName,
+      'phone': profile.phone,
+      'email': profile.email,
       'isActive': profile.isActive,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));

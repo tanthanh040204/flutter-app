@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/error_codes.dart';
 import '../models/rental_bill.dart';
 import '../providers/mobile_ride_provider.dart';
@@ -27,15 +28,16 @@ class BillScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
     final NumberFormat money = NumberFormat.currency(
-      locale: kCurrencyLocale,
-      symbol: kCurrencySymbol,
+      locale: t.moneyLocale,
+      symbol: t.moneySymbol,
     );
-    final _BillUiState uiState = _stateForStatus(bill.status);
+    final _BillUiState uiState = _stateForStatus(bill.status, t);
     final DateFormat dateFmt = DateFormat('HH:mm dd/MM/yyyy');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bill')),
+      appBar: AppBar(title: Text(t.bill)),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -54,15 +56,15 @@ class BillScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(18),
                 child: Column(
                   children: [
-                    _Row(label: 'User ID', value: bill.userId),
+                    _Row(label: t.userId, value: bill.userId),
                     _Row(
-                      label: 'Ended at',
+                      label: t.endedAt,
                       value: dateFmt.format(bill.endedAt),
                     ),
-                    _Row(label: 'Status', value: _statusText(bill.status)),
+                    _Row(label: t.status, value: _statusText(bill.status, t)),
                     const Divider(),
                     _Row(
-                      label: 'Total amount',
+                      label: t.totalAmount,
                       value: money.format(bill.amount),
                       bold: true,
                     ),
@@ -89,9 +91,9 @@ class BillScreen extends StatelessWidget {
                 context.read<MobileRideProvider>().acknowledgeBill();
                 Navigator.of(context).pop();
               },
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text('Close'),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Text(t.close),
               ),
             ),
           ],
@@ -100,17 +102,17 @@ class BillScreen extends StatelessWidget {
     );
   }
 
-  String _statusText(String status) {
-    final _BillUiState uiState = _stateForStatus(status);
+  String _statusText(String status, AppStrings t) {
+    final _BillUiState uiState = _stateForStatus(status, t);
     return uiState.statusLabel;
   }
 
-  _BillUiState _stateForStatus(String status) {
+  _BillUiState _stateForStatus(String status, AppStrings t) {
     switch (status) {
       case kStatusOk:
         return _BillUiState(
-          title: 'Ride ended',
-          statusLabel: 'Completed successfully',
+          title: t.rideEndedTitle,
+          statusLabel: t.rideCompletedSuccessfully,
           icon: Icons.check_circle,
           iconColor: Colors.green,
           cardColor: Colors.green.shade50,
@@ -118,32 +120,30 @@ class BillScreen extends StatelessWidget {
         );
       case kErrTimeLimitWarning:
         return _BillUiState(
-          title: 'Ride ended (warning)',
-          statusLabel: 'Ended within the 15-minute grace window',
+          title: t.rideEndedWarningTitle,
+          statusLabel: t.rideGraceWindowStatus,
           icon: Icons.warning_amber,
           iconColor: Colors.orange,
           cardColor: Colors.orange.shade50,
-          detail: 'You returned the bike within the 15-minute warning window.',
+          detail: t.rideGraceWindowDetail,
         );
       case kErrTimeLimitExceeded:
         return _BillUiState(
-          title: 'Ride ended (violation)',
-          statusLabel: 'Exceeded the 15-minute warning window',
+          title: t.rideEndedViolationTitle,
+          statusLabel: t.ridePenaltyStatus,
           icon: Icons.error,
           iconColor: Colors.red,
           cardColor: Colors.red.shade50,
-          detail:
-              'The bike was still outside a parking zone after the 15-minute '
-              'warning. The system ended the ride and applied a penalty.',
+          detail: t.ridePenaltyDetail,
         );
       default:
         return _BillUiState(
-          title: 'Ride ended',
+          title: t.rideEndedTitle,
           statusLabel: status,
           icon: Icons.info,
           iconColor: Colors.blueGrey,
           cardColor: Colors.blueGrey.shade50,
-          detail: ErrorMessages.describe(status),
+          detail: t.errorDescription(status),
         );
     }
   }

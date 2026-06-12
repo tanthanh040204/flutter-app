@@ -5,6 +5,8 @@
  */
 
 /* Imports ------------------------------------------------------------ */
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -12,6 +14,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_strings.dart';
 import '../models/error_codes.dart';
+import '../providers/ble_relay_provider.dart';
 import '../providers/mobile_auth_provider.dart';
 import '../providers/mobile_ride_provider.dart';
 
@@ -113,6 +116,42 @@ class _QrScanScreenState extends State<QrScanScreen> {
     if (ok != true) return false;
     if (!context.mounted) return false;
 
+    final BleRelayProvider ble = context.read<BleRelayProvider>();
+    BuildContext? loadingCtx;
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dCtx) {
+          loadingCtx = dCtx;
+          return Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: CircularProgressIndicator(strokeWidth: 3),
+                    ),
+                    const SizedBox(width: 14),
+                    Text(t.connectingBle),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    await ble.warmUpFor(vehicleId, timeout: const Duration(seconds: 10));
+    if (loadingCtx != null && loadingCtx!.mounted) {
+      Navigator.of(loadingCtx!).pop();
+    }
+    if (!context.mounted) return false;
+
     final bool published = await ride.startRental(
       bikeId: vehicleId,
       rentalHours: ride.selectedRentalHours,
@@ -121,7 +160,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
     if (!published) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(ErrorMessages.describe(ride.lastError ?? kErrUnknown)),
+          content: Text(t.errorDescription(ride.lastError ?? kErrUnknown)),
         ),
       );
       return false;

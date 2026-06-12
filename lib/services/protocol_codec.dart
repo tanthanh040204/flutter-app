@@ -14,6 +14,10 @@ const String kCmdPause = 'PAUSE';
 const String kCmdResume = 'RESUME';
 const String kCmdReqAddToken = 'REQ_ADD_TOKEN';
 
+/* --- App -> Device commands (cmd topic) ------------------------ */
+const String kCmdSetDangerNoti = 'SET_DANGER_NOTI';
+const String kCmdWhere = 'WHERE';
+
 /* --- Web -> App events ------------------------------------------ */
 const String kEvtStartRentalSuccess = 'START_RENTAL_SUCCESS';
 const String kEvtStopRentalFail = 'STOP_RENTAL_FAIL';
