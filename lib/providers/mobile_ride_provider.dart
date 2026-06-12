@@ -19,6 +19,7 @@ import '../models/rental_bill.dart';
 import '../services/mqtt_service.dart';
 import '../services/protocol_codec.dart';
 import '../services/user_wire_id.dart';
+import 'mobile_notice_provider.dart';
 import 'mobile_telemetry_provider.dart';
 
 /* Constants ---------------------------------------------------------- */
@@ -36,7 +37,9 @@ class MobileRideProvider extends ChangeNotifier {
   /* --- private fields ------------------------------------------ */
   final MqttService _mqtt;
   final MobileTelemetryProvider? _telemetry;
+  MobileNoticeProvider? _notice;
   StreamSubscription<ProtocolMessage>? _webAppSub;
+  StreamSubscription<ProtocolMessage>? _notiSub;
   Timer? _timer;
   Timer? _pauseTimeoutTimer;
   String? _uid;
@@ -114,6 +117,8 @@ class MobileRideProvider extends ChangeNotifier {
       : pricing.pricePerHour;
 
   /* --- public methods ------------------------------------------ */
+  void attachNotice(MobileNoticeProvider notice) => _notice = notice;
+
   void bindUser(MobileUserProfile? user) {
     final String? uid = user?.uid;
     final String? wireUserId = user == null
@@ -153,6 +158,7 @@ class MobileRideProvider extends ChangeNotifier {
     }
     _bikeId = bikeId;
     _subscribeWebApp(bikeId);
+    _subscribeDeviceNoti(bikeId);
     _telemetry?.watch(bikeId);
 
     phase = RentalPhase.starting;
@@ -259,6 +265,7 @@ class MobileRideProvider extends ChangeNotifier {
   @override
   void dispose() {
     _webAppSub?.cancel();
+    _notiSub?.cancel();
     _timer?.cancel();
     _pauseTimeoutTimer?.cancel();
     super.dispose();
@@ -268,6 +275,8 @@ class MobileRideProvider extends ChangeNotifier {
   void _resetAll() {
     _webAppSub?.cancel();
     _webAppSub = null;
+    _notiSub?.cancel();
+    _notiSub = null;
     _timer?.cancel();
     _pauseTimeoutTimer?.cancel();
     final String? prevBike = _bikeId;
@@ -294,6 +303,24 @@ class MobileRideProvider extends ChangeNotifier {
     _webAppSub = _mqtt
         .streamOf(MqttTopics.webToApp(bikeId))
         .listen(_handleWebAppMessage);
+  }
+
+  void _subscribeDeviceNoti(String bikeId) {
+    _notiSub?.cancel();
+    if (FeatureConfig.debugRideLog) {
+      debugPrint('[Ride] subscribe noti topic: ${MqttTopics.deviceNoti(bikeId)}');
+    }
+    _notiSub = _mqtt
+        .streamOf(MqttTopics.deviceNoti(bikeId))
+        .listen(_handleDeviceNoti);
+  }
+
+  void _handleDeviceNoti(ProtocolMessage msg) {
+    if (msg.command == kNotiStolen) {
+      warning = kNotiStolen;
+      if (_bikeId != null) _notice?.pushStolenAlert(_bikeId!);
+      notifyListeners();
+    }
   }
 
   void _handleWebAppMessage(ProtocolMessage msg) {

@@ -264,6 +264,10 @@ class AppStrings {
       ? 'Di chuyển xe đến khu vực đỗ gần nhất để kết thúc chuyến đi.'
       : 'Move the bike to the nearest parking zone to end the ride.';
   String get couldNotStartRide => vi ? 'Không thể bắt đầu chuyến đi' : 'Could not start the ride';
+  String get stolenAlertTitle => vi ? 'Cảnh báo xe bị xâm phạm' : 'Theft alert';
+  String get stolenAlertBody => vi
+      ? 'Xe đang có dấu hiệu bị di chuyển/lấy cắp. Vui lòng kiểm tra xe ngay.'
+      : 'The bike is being moved/tampered with. Please check on it immediately.';
 
   String get route => vi ? 'Lộ trình' : 'Route';
   String routeFromTo(String start, String end) => vi ? 'Lộ trình từ $start đến $end' : 'Route $start to $end';

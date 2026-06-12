@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../../l10n/app_strings.dart';
 import '../../models/mobile_history_route.dart';
+import '../../models/user_notice.dart';
 import '../../providers/mobile_notice_provider.dart';
 import '../route_view_screen.dart';
 
@@ -47,8 +48,8 @@ class MobileNotificationsTab extends StatelessWidget {
                 _NoticeCard(
                   icon: _iconFor(notice.type),
                   color: _colorFor(notice.type),
-                  title: notice.title,
-                  body: notice.body,
+                  title: _titleFor(notice, t),
+                  body: _bodyFor(notice, t),
                 ),
                 const SizedBox(height: 10),
               ],
@@ -100,10 +101,18 @@ class MobileNotificationsTab extends StatelessWidget {
 
   static String _two(int n) => n.toString().padLeft(2, '0');
 
+  static String _titleFor(UserNotice n, AppStrings t) =>
+      n.type == kNoticeTypeStolen ? t.stolenAlertTitle : n.title;
+
+  static String _bodyFor(UserNotice n, AppStrings t) =>
+      n.type == kNoticeTypeStolen ? t.stolenAlertBody : n.body;
+
   static IconData _iconFor(String type) {
     switch (type) {
       case kNoticeTypeBattery:
         return Icons.battery_alert;
+      case kNoticeTypeStolen:
+        return Icons.gpp_maybe;
       case kNoticeTypeStatus:
       case kNoticeTypePaused:
       case kNoticeTypeEnded:
@@ -117,6 +126,8 @@ class MobileNotificationsTab extends StatelessWidget {
     switch (type) {
       case kNoticeTypeBattery:
         return Colors.orange;
+      case kNoticeTypeStolen:
+        return Colors.red;
       case kNoticeTypeEnded:
         return Colors.green;
       case kNoticeTypePaused:

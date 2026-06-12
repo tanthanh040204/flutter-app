@@ -282,7 +282,9 @@ class MobileRideTab extends StatelessWidget {
 
   Widget _buildWarning(BuildContext context, MobileRideProvider ride) {
     final String w = ride.warning!;
-    final bool severe = w == kEvtWarnOutOfBalance || w == kErrOutOfParkingZone;
+    final bool severe = w == kEvtWarnOutOfBalance ||
+        w == kErrOutOfParkingZone ||
+        w == kNotiStolen;
     final Color color = severe ? Colors.red : Colors.orange;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -329,6 +331,8 @@ class MobileRideTab extends StatelessWidget {
         return t.outOfBalanceTitle;
       case kErrOutOfParkingZone:
         return t.outOfParkingZoneTitle;
+      case kNotiStolen:
+        return t.stolenAlertTitle;
       default:
         return t.warning;
     }
@@ -342,6 +346,8 @@ class MobileRideTab extends StatelessWidget {
         return t.outOfBalanceBody;
       case kErrOutOfParkingZone:
         return t.outOfParkingZoneBody;
+      case kNotiStolen:
+        return t.stolenAlertBody;
       default:
         return '';
     }

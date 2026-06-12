@@ -99,8 +99,12 @@ class TnGoUserApp extends StatelessWidget {
         ChangeNotifierProxyProvider<MobileAuthProvider, MobileNoticeProvider>(
           create: (context) =>
               MobileNoticeProvider(context.read<MobileUserRepo>()),
-          update: (context, auth, previous) =>
-              previous!..bindUser(auth.currentUser?.uid),
+          update: (context, auth, previous) {
+            final MobileNoticeProvider provider = previous!
+              ..bindUser(auth.currentUser?.uid);
+            context.read<MobileRideProvider>().attachNotice(provider);
+            return provider;
+          },
         ),
         ChangeNotifierProvider(
           create: (context) =>

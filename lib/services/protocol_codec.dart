@@ -18,6 +18,9 @@ const String kCmdReqAddToken = 'REQ_ADD_TOKEN';
 const String kCmdSetDangerNoti = 'SET_DANGER_NOTI';
 const String kCmdWhere = 'WHERE';
 
+/* --- Device -> App events (noti topic) ------------------------- */
+const String kNotiStolen = 'NOTI_STOLEN';
+
 /* --- Web -> App events ------------------------------------------ */
 const String kEvtStartRentalSuccess = 'START_RENTAL_SUCCESS';
 const String kEvtStopRentalFail = 'STOP_RENTAL_FAIL';
