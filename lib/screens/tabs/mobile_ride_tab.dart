@@ -41,6 +41,8 @@ class MobileRideTab extends StatelessWidget {
                   children: [
                     const Icon(Icons.notifications_active_outlined, size: 20),
                     Switch(
+                      activeThumbColor: const Color.fromARGB(255, 0, 245, 12),
+                      inactiveThumbColor: Colors.grey,
                       value: ride.dangerNotiEnabled,
                       onChanged: ride.setDangerNoti,
                     ),
@@ -105,7 +107,11 @@ class MobileRideTab extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(Icons.electric_bike, color: Colors.white, size: 34),
+                    child: const Icon(
+                      Icons.electric_bike,
+                      color: Colors.white,
+                      size: 34,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -123,7 +129,10 @@ class MobileRideTab extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           ride.isPaused ? t.pause : t.unlocked,
-                          style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
@@ -205,7 +214,9 @@ class MobileRideTab extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: FilledButton.icon(
-                onPressed: ride.phase == RentalPhase.stopping ? null : ride.endRide,
+                onPressed: ride.phase == RentalPhase.stopping
+                    ? null
+                    : ride.endRide,
                 icon: const Icon(Icons.stop_circle_outlined),
                 label: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -282,7 +293,8 @@ class MobileRideTab extends StatelessWidget {
 
   Widget _buildWarning(BuildContext context, MobileRideProvider ride) {
     final String w = ride.warning!;
-    final bool severe = w == kEvtWarnOutOfBalance ||
+    final bool severe =
+        w == kEvtWarnOutOfBalance ||
         w == kErrOutOfParkingZone ||
         w == kNotiStolen;
     final Color color = severe ? Colors.red : Colors.orange;
@@ -309,7 +321,10 @@ class MobileRideTab extends StatelessWidget {
                     style: TextStyle(color: color, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 4),
-                  Text(_bodyFor(w, context.tr), style: const TextStyle(height: 1.35)),
+                  Text(
+                    _bodyFor(w, context.tr),
+                    style: const TextStyle(height: 1.35),
+                  ),
                 ],
               ),
             ),
@@ -397,13 +412,20 @@ class _EmptyRideState extends StatelessWidget {
                   color: kRideBlue.withValues(alpha: 0.10),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.electric_bike_outlined, color: kRideBlue, size: 46),
+                child: const Icon(
+                  Icons.electric_bike_outlined,
+                  color: kRideBlue,
+                  size: 46,
+                ),
               ),
               const SizedBox(height: 18),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 8),
               Text(

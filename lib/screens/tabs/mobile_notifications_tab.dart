@@ -50,6 +50,7 @@ class MobileNotificationsTab extends StatelessWidget {
                   color: _colorFor(notice.type),
                   title: _titleFor(notice, t),
                   body: _bodyFor(notice, t),
+                  onDelete: () => provider.deleteNotice(notice.id),
                 ),
                 const SizedBox(height: 10),
               ],
@@ -143,12 +144,14 @@ class _NoticeCard extends StatelessWidget {
   final Color color;
   final String title;
   final String body;
+  final VoidCallback onDelete;
 
   const _NoticeCard({
     required this.icon,
     required this.color,
     required this.title,
     required this.body,
+    required this.onDelete,
   });
 
   @override
@@ -192,6 +195,10 @@ class _NoticeCard extends StatelessWidget {
                 Text(body, style: const TextStyle(color: Colors.black54, height: 1.35)),
               ],
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 20, color: Colors.black38),
+            onPressed: onDelete,
           ),
         ],
       ),

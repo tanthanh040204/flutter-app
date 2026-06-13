@@ -10,6 +10,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../config/feature_conf.dart';
 import '../config/mqtt_config.dart';
@@ -28,16 +29,19 @@ class MobileTelemetryProvider extends ChangeNotifier {
   /* --- private fields ------------------------------------------ */
   final MqttService _mqtt;
   final Map<String, DeviceTelemetry> _latest = {};
+  final Map<String, List<LatLng>> _paths = {};
   final Map<String, StreamSubscription<String>> _subs = {};
 
   /* --- public methods ------------------------------------------ */
   DeviceTelemetry? telemetryFor(String bikeId) => _latest[bikeId];
 
+  /* Positions travelled since `watch` began, in order. */
+  List<LatLng> pathFor(String bikeId) => _paths[bikeId] ?? const [];
+
   void ingestRaw(String bikeId, String raw) {
     final DeviceTelemetry? parsed = TelemetryParser.parse(raw);
     if (parsed == null) return;
-    _latest[bikeId] = parsed;
-    notifyListeners();
+    _store(bikeId, parsed);
   }
 
   /* Begin storing telemetry for `bikeId`. Idempotent — calling twice
@@ -51,14 +55,24 @@ class MobileTelemetryProvider extends ChangeNotifier {
     _subs[bikeId] = _mqtt.rawStreamOf(topic).listen((raw) {
       final DeviceTelemetry? parsed = TelemetryParser.parse(raw);
       if (parsed == null) return;
-      _latest[bikeId] = parsed;
-      notifyListeners();
+      _store(bikeId, parsed);
     });
   }
 
   void stopWatching(String bikeId) {
     _subs.remove(bikeId)?.cancel();
+    _paths.remove(bikeId);
     _mqtt.unsubscribe(MqttTopics.deviceData(bikeId));
+  }
+
+  void _store(String bikeId, DeviceTelemetry parsed) {
+    _latest[bikeId] = parsed;
+    if (parsed.lat != null && parsed.lng != null) {
+      final List<LatLng> path = _paths.putIfAbsent(bikeId, () => <LatLng>[]);
+      final LatLng pt = LatLng(parsed.lat!, parsed.lng!);
+      if (path.isEmpty || path.last != pt) path.add(pt);
+    }
+    notifyListeners();
   }
 
   @override
@@ -67,6 +81,7 @@ class MobileTelemetryProvider extends ChangeNotifier {
       sub.cancel();
     }
     _subs.clear();
+    _paths.clear();
     super.dispose();
   }
 }

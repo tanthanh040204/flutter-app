@@ -11,8 +11,11 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_strings.dart';
+import '../../models/device_telemetry.dart';
 import '../../models/station.dart';
+import '../../providers/mobile_ride_provider.dart';
 import '../../providers/mobile_stations_provider.dart';
+import '../../providers/mobile_telemetry_provider.dart';
 
 /* Constants ---------------------------------------------------------- */
 const Color kMarkerColor = Color(0xFF1557FF);
@@ -26,30 +29,81 @@ const int kBatteryMediumThresh = 25;
 /* Typedef / Function types ------------------------------------------ */
 
 /* Public classes ----------------------------------------------------- */
-class MobileStationsTab extends StatelessWidget {
+class MobileStationsTab extends StatefulWidget {
   const MobileStationsTab({super.key});
+
+  @override
+  State<MobileStationsTab> createState() => _MobileStationsTabState();
+}
+
+class _MobileStationsTabState extends State<MobileStationsTab> {
+  final MapController _mapController = MapController();
+  /* Tracks the bike we last centred on, so we recenter only once per ride. */
+  String? _focusedBikeId;
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final AppStrings t = context.tr;
     final MobileStationsProvider stationsProvider = context
         .watch<MobileStationsProvider>();
+    final MobileRideProvider ride = context.watch<MobileRideProvider>();
+    final MobileTelemetryProvider telemetry = context
+        .watch<MobileTelemetryProvider>();
+
     final List<BikeStation> stations = stationsProvider.stations;
     final LatLng userPoint = stationsProvider.currentUserLocation;
 
-    final LatLng center = stations.isNotEmpty
-        ? stations.first.point
-        : userPoint;
+    /* While renting, overlay the rented bike's live position + travelled
+     * route. Outside a rental the map behaves exactly as before. */
+    final bool renting = ride.hasActiveSession && ride.currentBikeId != null;
+    final String? bikeId = renting ? ride.currentBikeId : null;
+    final DeviceTelemetry? tm = bikeId != null
+        ? telemetry.telemetryFor(bikeId)
+        : null;
+    final LatLng? bikePoint = (tm?.lat != null && tm?.lng != null)
+        ? LatLng(tm!.lat!, tm.lng!)
+        : null;
+    final List<LatLng> bikePath = bikeId != null
+        ? telemetry.pathFor(bikeId)
+        : const [];
+
+    if (renting && bikePoint != null && _focusedBikeId != bikeId) {
+      _focusedBikeId = bikeId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _mapController.move(bikePoint, 16);
+      });
+    }
+    if (!renting) _focusedBikeId = null;
+
+    final LatLng center =
+        bikePoint ?? (stations.isNotEmpty ? stations.first.point : userPoint);
 
     return Scaffold(
       appBar: AppBar(title: Text(t.stations)),
       body: FlutterMap(
+        mapController: _mapController,
         options: MapOptions(initialCenter: center, initialZoom: 15.2),
         children: [
           TileLayer(
             urlTemplate: kOsmTileUrl,
             userAgentPackageName: kUserAgentPkg,
           ),
+          if (bikePath.length >= 2)
+            PolylineLayer(
+              polylines: [
+                Polyline(
+                  points: bikePath,
+                  strokeWidth: 5,
+                  color: kAccentColor,
+                ),
+              ],
+            ),
           MarkerLayer(
             markers: [
               Marker(
@@ -73,6 +127,14 @@ class MobileStationsTab extends StatelessWidget {
                   ),
                 ),
               ),
+              if (bikePoint != null)
+                Marker(
+                  point: bikePoint,
+                  width: 54,
+                  height: 54,
+                  alignment: Alignment.topCenter,
+                  child: const _RentedBikeMarker(),
+                ),
             ],
           ),
         ],
@@ -215,6 +277,22 @@ class MobileStationsTab extends StatelessWidget {
 }
 
 /* Private classes ---------------------------------------------------- */
+class _RentedBikeMarker extends StatelessWidget {
+  const _RentedBikeMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Icon(
+      Icons.location_pin,
+      color: Color(0xFF1F2A44),
+      size: 48,
+      shadows: [
+        Shadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
+      ],
+    );
+  }
+}
+
 class _StationMarker extends StatelessWidget {
   final int count;
 

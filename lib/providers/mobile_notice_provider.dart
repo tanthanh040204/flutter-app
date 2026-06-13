@@ -32,9 +32,15 @@ class MobileNoticeProvider extends ChangeNotifier {
    * stream re-emitting does not wipe them. */
   final List<UserNotice> _localNotices = [];
   List<UserNotice> _remoteNotices = const [];
+  /* Ids of remote notices the user dismissed locally — filtered out so the
+   * re-emitting stream doesn't resurrect them (no Firestore delete). */
+  final Set<String> _dismissedIds = {};
 
   /* --- public getters ------------------------------------------ */
-  List<UserNotice> get notices => [..._localNotices, ..._remoteNotices];
+  List<UserNotice> get notices => [
+    ..._localNotices,
+    ..._remoteNotices.where((n) => !_dismissedIds.contains(n.id)),
+  ];
 
   /* --- public fields ------------------------------------------- */
   List<MobileHistoryRoute> routes = const [];
@@ -47,6 +53,7 @@ class MobileNoticeProvider extends ChangeNotifier {
     _routeSub?.cancel();
     _localNotices.clear();
     _remoteNotices = const [];
+    _dismissedIds.clear();
     routes = const [];
     notifyListeners();
     if (uid == null) return;
@@ -82,6 +89,15 @@ class MobileNoticeProvider extends ChangeNotifier {
         createdAt: DateTime.now(),
       ),
     );
+    notifyListeners();
+  }
+
+  /* Remove a notice from the tab locally. Local alerts are dropped outright;
+   * remote ones are suppressed by id (Firestore is left untouched). */
+  void deleteNotice(String id) {
+    final int before = _localNotices.length;
+    _localNotices.removeWhere((n) => n.id == id);
+    if (_localNotices.length == before) _dismissedIds.add(id);
     notifyListeners();
   }
 
