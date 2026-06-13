@@ -23,6 +23,7 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_blue_plus: ^2.3.8
   shared_preferences: ^2.5.5
+  flutter_foreground_task: ^9.1.0
 
 dev_dependencies:
   flutter_test:

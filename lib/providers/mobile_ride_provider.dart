@@ -16,6 +16,9 @@ import '../models/error_codes.dart';
 import '../models/mobile_user_profile.dart';
 import '../models/pricing_config.dart';
 import '../models/rental_bill.dart';
+import '../models/ride_snapshot.dart';
+import '../services/foreground_service.dart';
+import '../services/mobile_user_repo.dart';
 import '../services/mqtt_service.dart';
 import '../services/protocol_codec.dart';
 import '../services/user_wire_id.dart';
@@ -31,11 +34,15 @@ enum RentalPhase { idle, starting, running, paused, stopping, ended }
 /* Public classes ----------------------------------------------------- */
 
 class MobileRideProvider extends ChangeNotifier {
-  MobileRideProvider(this._mqtt, {MobileTelemetryProvider? telemetry})
-    : _telemetry = telemetry;
+  MobileRideProvider(
+    this._mqtt,
+    this._repo, {
+    MobileTelemetryProvider? telemetry,
+  }) : _telemetry = telemetry;
 
   /* --- private fields ------------------------------------------ */
   final MqttService _mqtt;
+  final MobileUserRepo _repo;
   final MobileTelemetryProvider? _telemetry;
   MobileNoticeProvider? _notice;
   StreamSubscription<ProtocolMessage>? _webAppSub;
@@ -129,6 +136,9 @@ class MobileRideProvider extends ChangeNotifier {
     _wireUserId = wireUserId;
     _resetAll();
     notifyListeners();
+    if (wireUserId != null) {
+      unawaited(_restoreSession(wireUserId));
+    }
   }
 
   void setSelectedRentalHours(int hours) {
@@ -291,6 +301,79 @@ class MobileRideProvider extends ChangeNotifier {
     lastError = null;
     warning = null;
     dangerNotiEnabled = true;
+    _stopForeground();
+  }
+
+  /* Reattach to an in-flight rental persisted before the app was killed. */
+  Future<void> _restoreSession(String wireUserId) async {
+    final RideSnapshot? snap = await _repo.fetchRideSnapshot(wireUserId);
+    if (snap == null) return;
+    /* The user may have changed, or started a fresh rental, while the
+     * Firestore read was in flight. */
+    if (_wireUserId != wireUserId || phase != RentalPhase.idle) return;
+
+    _bikeId = snap.bikeId;
+    _selectedRentalHours = snap.selectedRentalHours;
+    _startedAt = snap.phaseStartedAt;
+    _consumedAtPhaseStart = snap.consumedAtPhaseStart;
+    phase = snap.status == kStatusPaused
+        ? RentalPhase.paused
+        : RentalPhase.running;
+
+    _subscribeWebApp(snap.bikeId);
+    _subscribeDeviceNoti(snap.bikeId);
+    _telemetry?.watch(snap.bikeId);
+    _restartTicker();
+    if (phase == RentalPhase.paused) _startPauseTimeout();
+    _startForeground();
+
+    if (FeatureConfig.debugRideLog) {
+      debugPrint(
+        '[Ride] restored session bike=${snap.bikeId} phase=$phase '
+        'hours=$_selectedRentalHours consumed=$_consumedAtPhaseStart',
+      );
+    }
+    notifyListeners();
+  }
+
+  void _persistSnapshot() {
+    final String? wireUserId = _wireUserId;
+    final String? bikeId = _bikeId;
+    if (wireUserId == null || bikeId == null) return;
+    if (phase != RentalPhase.running && phase != RentalPhase.paused) return;
+    unawaited(
+      _repo.saveRideSnapshot(
+        RideSnapshot(
+          wireUserId: wireUserId,
+          bikeId: bikeId,
+          status: phase == RentalPhase.paused ? kStatusPaused : kStatusActive,
+          selectedRentalHours: _selectedRentalHours,
+          phaseStartedAt: _startedAt ?? DateTime.now(),
+          consumedAtPhaseStart: _consumedAtPhaseStart,
+        ),
+      ),
+    );
+  }
+
+  void _clearSnapshot() {
+    final String? wireUserId = _wireUserId;
+    if (wireUserId == null) return;
+    unawaited(_repo.clearRideSnapshot(wireUserId));
+  }
+
+  /* Keep the process + MQTT alive in the background for the rental's
+   * lifetime so warnings / END_RENTAL are still received. */
+  void _startForeground() {
+    unawaited(
+      RideForegroundService.start(
+        title: 'UTE-go rental in progress',
+        text: 'Keeping your rental session active.',
+      ),
+    );
+  }
+
+  void _stopForeground() {
+    unawaited(RideForegroundService.stop());
   }
 
   void _subscribeWebApp(String bikeId) {
@@ -383,6 +466,8 @@ class MobileRideProvider extends ChangeNotifier {
     phase = RentalPhase.running;
     _consumedAtPhaseStart = 0;
     _restartTicker();
+    _persistSnapshot();
+    _startForeground();
     notifyListeners();
   }
 
@@ -394,6 +479,7 @@ class MobileRideProvider extends ChangeNotifier {
     _startedAt = DateTime.now();
     _restartTicker();
     _startPauseTimeout();
+    _persistSnapshot();
     notifyListeners();
   }
 
@@ -404,6 +490,7 @@ class MobileRideProvider extends ChangeNotifier {
     _pauseTimeoutTimer?.cancel();
     _pauseTimeoutTimer = null;
     _restartTicker();
+    _persistSnapshot();
     notifyListeners();
   }
 
@@ -429,12 +516,16 @@ class MobileRideProvider extends ChangeNotifier {
     phase = RentalPhase.ended;
     _timer?.cancel();
     _pauseTimeoutTimer?.cancel();
+    _clearSnapshot();
+    _stopForeground();
     notifyListeners();
   }
 
   void _onRentalErr(ProtocolMessage msg) {
     lastError = msg.argAt(0) ?? kErrUnknown;
     phase = RentalPhase.idle;
+    _clearSnapshot();
+    _stopForeground();
     notifyListeners();
   }
 

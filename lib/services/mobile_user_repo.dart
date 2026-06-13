@@ -19,6 +19,7 @@ import '../models/mobile_user_profile.dart';
 import '../models/parking_zone.dart';
 import '../models/pricing_config.dart';
 import '../models/rental_vehicle.dart';
+import '../models/ride_snapshot.dart';
 import '../models/station.dart';
 import '../models/user_notice.dart';
 import '../models/user_ride_session.dart';
@@ -137,6 +138,8 @@ class MobileUserRepo {
       StreamController<List<BikeStation>>.broadcast();
 
   final Map<String, UserRideSession> _activeSessions = {};
+
+  final Map<String, RideSnapshot> _rideSnapshots = {};
 
   /* Demo vehicle inventory. Keyed by vehicle id. */
   final Map<String, RentalVehicle> _vehicles = {
@@ -613,6 +616,56 @@ class MobileUserRepo {
           if (snap.docs.isEmpty) return null;
           return _sessionFromDoc(snap.docs.first);
         });
+  }
+
+  /* ----- Ride snapshot (restore in-flight rental across restarts) ----- */
+
+  Future<RideSnapshot?> fetchRideSnapshot(String wireUserId) async {
+    final FirebaseFirestore? db = _db;
+    if (db == null) return _rideSnapshots[wireUserId];
+    try {
+      final DocumentSnapshot<Map<String, dynamic>> doc = await db
+          .collection(kColRideSessions)
+          .doc(wireUserId)
+          .get();
+      final RideSnapshot? snap = RideSnapshot.fromMap(doc.data());
+      if (snap == null) return null;
+      if (snap.status != kStatusActive && snap.status != kStatusPaused) {
+        return null;
+      }
+      return snap;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveRideSnapshot(RideSnapshot snap) async {
+    final FirebaseFirestore? db = _db;
+    if (db == null) {
+      _rideSnapshots[snap.wireUserId] = snap;
+      return;
+    }
+    try {
+      await db
+          .collection(kColRideSessions)
+          .doc(snap.wireUserId)
+          .set(snap.toMap(), SetOptions(merge: true));
+    } catch (_) {
+      /* Best-effort persistence; never block the rental on a write failure. */
+    }
+  }
+
+  Future<void> clearRideSnapshot(String wireUserId) async {
+    final FirebaseFirestore? db = _db;
+    if (db == null) {
+      _rideSnapshots.remove(wireUserId);
+      return;
+    }
+    try {
+      await db.collection(kColRideSessions).doc(wireUserId).delete();
+    } catch (_) {
+      /* Best-effort cleanup. */
+    }
   }
 
   Stream<RentalVehicle?> watchVehicle(String vehicleId) {

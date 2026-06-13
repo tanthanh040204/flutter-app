@@ -57,6 +57,7 @@ class TnGoUserApp extends StatelessWidget {
         ChangeNotifierProxyProvider<MobileAuthProvider, MobileRideProvider>(
           create: (context) => MobileRideProvider(
             context.read<MqttService>(),
+            context.read<MobileUserRepo>(),
             telemetry: context.read<MobileTelemetryProvider>(),
           ),
           update: (context, auth, previous) {
@@ -64,6 +65,7 @@ class TnGoUserApp extends StatelessWidget {
                 previous ??
                 MobileRideProvider(
                   context.read<MqttService>(),
+                  context.read<MobileUserRepo>(),
                   telemetry: context.read<MobileTelemetryProvider>(),
                 );
             provider.bindUser(auth.currentUser);
