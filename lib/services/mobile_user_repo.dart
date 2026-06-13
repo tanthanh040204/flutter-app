@@ -23,6 +23,7 @@ import '../models/ride_snapshot.dart';
 import '../models/station.dart';
 import '../models/user_notice.dart';
 import '../models/user_ride_session.dart';
+import 'app_mode.dart';
 import 'user_wire_id.dart';
 
 /* Constants ---------------------------------------------------------- */
@@ -179,6 +180,7 @@ class MobileUserRepo {
   bool get _isReady => Firebase.apps.isNotEmpty;
 
   bool get _useLocalDemo {
+    if (AppMode.forceLocal) return true;
     if (!_isReady) return true;
     try {
       return Firebase.app().options.projectId.trim().toLowerCase() ==

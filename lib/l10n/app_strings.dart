@@ -69,6 +69,18 @@ class AppStrings {
       ? 'Mật khẩu xác nhận không khớp.'
       : 'Password confirmation does not match.';
 
+  String get connectionMode => vi ? 'Chế độ kết nối' : 'Connection mode';
+  String get modeOnline => 'Online';
+  String get modeLocal => 'Local';
+  String get modeOnlineHint => vi
+      ? 'Online: dùng máy chủ (Firebase) như bình thường.'
+      : 'Online: use the cloud (Firebase) as usual.';
+  String get modeLocalHint => vi
+      ? 'Local: chạy offline bằng dữ liệu demo trong máy, không cần máy chủ. '
+            'Dùng tài khoản demo (demo@tngo.vn / 123456).'
+      : 'Local: run offline with on-device demo data, no server needed. '
+            'Use the demo account (demo@tngo.vn / 123456).';
+
   String get changePassword => vi ? 'Đổi mật khẩu' : 'Change password';
   String get currentPassword => vi ? 'Mật khẩu hiện tại' : 'Current password';
   String get newPassword => vi ? 'Mật khẩu mới' : 'New password';

@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_strings.dart';
 import '../providers/mobile_auth_provider.dart';
+import '../services/app_mode.dart';
 import '../widgets/language_switch.dart';
 
 /* Constants ---------------------------------------------------------- */
@@ -32,6 +33,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool loginMode = true;
   bool obscurePassword = true;
   bool obscureConfirmPassword = true;
+  bool localMode = AppMode.forceLocal;
 
   final TextEditingController fullNameCtl = TextEditingController(
     text: 'Người dùng UTE-GO',
@@ -161,6 +163,60 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.dns_outlined,
+                                  size: 18,
+                                  color: Colors.black54,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  t.connectionMode,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            SegmentedButton<bool>(
+                              segments: [
+                                ButtonSegment(
+                                  value: false,
+                                  label: Text(t.modeOnline),
+                                  icon: const Icon(Icons.cloud_done_outlined),
+                                ),
+                                ButtonSegment(
+                                  value: true,
+                                  label: Text(t.modeLocal),
+                                  icon: const Icon(Icons.cloud_off_outlined),
+                                ),
+                              ],
+                              selected: {localMode},
+                              onSelectionChanged: (value) {
+                                final bool next = value.first;
+                                setState(() => localMode = next);
+                                AppMode.setForceLocal(next);
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                localMode ? t.modeLocalHint : t.modeOnlineHint,
+                                style: const TextStyle(
+                                  color: Colors.black54,
+                                  height: 1.35,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             SegmentedButton<bool>(
                               segments: [
                                 ButtonSegment(value: true, label: Text(t.login)),

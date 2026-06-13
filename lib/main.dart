@@ -20,6 +20,7 @@ import 'providers/mobile_stations_provider.dart';
 import 'providers/mobile_telemetry_provider.dart';
 import 'providers/mobile_wallet_provider.dart';
 import 'screens/mobile_bootstrap.dart';
+import 'services/app_mode.dart';
 import 'services/mobile_user_repo.dart';
 import 'services/mqtt_service.dart';
 
@@ -135,6 +136,10 @@ class TnGoUserApp extends StatelessWidget {
 /* Entry point -------------------------------------------------------- */
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load the persisted backend mode (Online / Local) before the first repo
+  // read so _useLocalDemo routes correctly from the start.
+  await AppMode.load();
 
   try {
     await Firebase.initializeApp(
