@@ -864,7 +864,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
                         child: OutlinedButton.icon(
                           onPressed: () => _openExternalUrl(kTuoiTreVehicleUrl),
                           icon: const Icon(
-                            Icons.directions_car_filled_outlined,
+                            Icons.directions_bike_outlined,
                           ),
                           label: Text(t.openTrafficNews),
                         ),

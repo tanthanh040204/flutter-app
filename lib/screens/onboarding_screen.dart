@@ -35,7 +35,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardData(
       title: t.onboardingTitle1,
       desc: t.onboardingDesc1,
-      icon: Icons.electric_moped_rounded,
+      icon: Icons.electric_bike_rounded,
       color: kOnboardBlue,
     ),
     _OnboardData(
@@ -47,7 +47,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardData(
       title: t.onboardingTitle3,
       desc: t.onboardingDesc3,
-      icon: Icons.electric_scooter_rounded,
+      icon: Icons.pedal_bike_rounded,
       color: kOnboardCyan,
     ),
   ];
