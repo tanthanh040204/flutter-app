@@ -1,6 +1,6 @@
 /*
  * @file       mobile_notifications_tab.dart
- * @brief      Notifications tab: shows user alerts and history routes.
+ * @brief      Notifications tab: shows user alerts.
  */
 
 /* Imports ------------------------------------------------------------ */
@@ -8,14 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_strings.dart';
-import '../../models/mobile_history_route.dart';
 import '../../models/user_notice.dart';
 import '../../providers/mobile_notice_provider.dart';
-import '../route_view_screen.dart';
 
 /* Constants ---------------------------------------------------------- */
 const Color kIconColor = Color(0xFF2563EB);
-const Color kRouteColor = Color(0xFF0F766E);
 const String kNoticeTypeBattery = 'battery_low';
 const String kNoticeTypeStatus = 'ride_status';
 const String kNoticeTypePaused = 'ride_paused';
@@ -56,51 +53,11 @@ class MobileNotificationsTab extends StatelessWidget {
               ],
             ] else
               _EmptyNotifications(title: t.notifications),
-            if (provider.routes.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.route_outlined, color: kRouteColor),
-                  const SizedBox(width: 8),
-                  Text(
-                    t.routes,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              for (final route in provider.routes) ...[
-                _RouteCard(
-                  title: _routeButtonLabel(route, t),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RouteViewScreen(route: route),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-              ],
-            ],
           ],
         ),
       ),
     );
   }
-
-  static String _routeButtonLabel(MobileHistoryRoute route, AppStrings t) {
-    final String start =
-        '${_two(route.startAt.hour)}:${_two(route.startAt.minute)}'
-        ' ${_two(route.startAt.day)}/${_two(route.startAt.month)}';
-    if (route.endAt == null) return t.routeAt(start);
-    final String end =
-        '${_two(route.endAt!.hour)}:${_two(route.endAt!.minute)}'
-        ' ${_two(route.endAt!.day)}/${_two(route.endAt!.month)}';
-    return t.routeFromTo(start, end);
-  }
-
-  static String _two(int n) => n.toString().padLeft(2, '0');
 
   static String _titleFor(UserNotice n, AppStrings t) =>
       n.type == kNoticeTypeStolen ? t.stolenAlertTitle : n.title;
@@ -201,47 +158,6 @@ class _NoticeCard extends StatelessWidget {
             onPressed: onDelete,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RouteCard extends StatelessWidget {
-  final String title;
-  final VoidCallback onTap;
-
-  const _RouteCard({required this.title, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: kRouteColor.withValues(alpha: 0.14)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: kRouteColor.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: const Icon(Icons.alt_route, color: kRouteColor),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.black38),
-          ],
-        ),
       ),
     );
   }

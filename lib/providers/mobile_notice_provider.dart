@@ -1,6 +1,6 @@
 /*
  * @file       mobile_notice_provider.dart
- * @brief      Streams per-user notifications and history routes.
+ * @brief      Streams per-user notifications.
  */
 
 /* Imports ------------------------------------------------------------ */
@@ -8,12 +8,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../models/mobile_history_route.dart';
 import '../models/user_notice.dart';
 import '../services/mobile_user_repo.dart';
 
 /* Constants ---------------------------------------------------------- */
-const String kDefaultVehicleId = 'V1';
 const String kNoticeTypeStolen = 'theft_alert';
 
 /* Enums -------------------------------------------------------------- */
@@ -26,7 +24,6 @@ class MobileNoticeProvider extends ChangeNotifier {
   /* --- private fields ------------------------------------------ */
   final MobileUserRepo _repo;
   StreamSubscription<List<UserNotice>>? _noticeSub;
-  StreamSubscription<List<MobileHistoryRoute>>? _routeSub;
   String? _uid;
   /* App-generated alerts (e.g. theft) kept separate so the remote
    * stream re-emitting does not wipe them. */
@@ -42,28 +39,19 @@ class MobileNoticeProvider extends ChangeNotifier {
     ..._remoteNotices.where((n) => !_dismissedIds.contains(n.id)),
   ];
 
-  /* --- public fields ------------------------------------------- */
-  List<MobileHistoryRoute> routes = const [];
-
   /* --- public methods ------------------------------------------ */
-  void bindUser(String? uid, {String vehicleId = kDefaultVehicleId}) {
+  void bindUser(String? uid) {
     if (_uid == uid) return;
     _uid = uid;
     _noticeSub?.cancel();
-    _routeSub?.cancel();
     _localNotices.clear();
     _remoteNotices = const [];
     _dismissedIds.clear();
-    routes = const [];
     notifyListeners();
     if (uid == null) return;
 
     _noticeSub = _repo.watchUserNotifications(uid).listen((event) {
       _remoteNotices = event;
-      notifyListeners();
-    });
-    _routeSub = _repo.watchUserRoutes(vehicleId: vehicleId).listen((event) {
-      routes = event;
       notifyListeners();
     });
   }
@@ -104,7 +92,6 @@ class MobileNoticeProvider extends ChangeNotifier {
   @override
   void dispose() {
     _noticeSub?.cancel();
-    _routeSub?.cancel();
     super.dispose();
   }
 }

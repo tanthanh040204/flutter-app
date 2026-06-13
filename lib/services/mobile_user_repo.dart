@@ -14,7 +14,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../config/feature_conf.dart';
-import '../models/mobile_history_route.dart';
 import '../models/mobile_user_profile.dart';
 import '../models/parking_zone.dart';
 import '../models/pricing_config.dart';
@@ -40,7 +39,6 @@ const String kColWalletTxs = 'wallet_transactions';
 const String kColLoginEvents = 'login_events';
 const String kColAppConfigs = 'app_configs';
 const String kColParkingZones = 'parking_zones';
-const String kColHistoryRoutes = 'history_routes';
 const String kDocPricing = 'pricing';
 
 /* --- Balance defaults ------------------------------------------- */
@@ -83,7 +81,6 @@ const String kTopupMethodBankQr = 'bank_qr';
 /* --- Project / demo --------------------------------------------- */
 const String kDemoProjectId = 'demo-project';
 const int kNoticeQueryLimit = 50;
-const int kRouteKeepDaysDefault = 30;
 
 /* --- Demo seed defaults ----------------------------------------- */
 const String kDefaultStationStartId = 'ST_HCM_001';
@@ -707,31 +704,6 @@ class MobileUserRepo {
         .limit(kNoticeQueryLimit)
         .snapshots()
         .map((snap) => snap.docs.map(_noticeFromDoc).toList());
-  }
-
-  /* ================================================================
-   *  8) ROUTES — per-vehicle ride history
-   * ================================================================ */
-
-  Stream<List<MobileHistoryRoute>> watchUserRoutes({
-    required String vehicleId,
-    int keepDays = kRouteKeepDaysDefault,
-  }) {
-    final FirebaseFirestore? db = _db;
-    if (db == null) {
-      return Stream.value(_seedRoutes(vehicleId));
-    }
-    final DateTime keepFrom = DateTime.now().subtract(
-      Duration(days: keepDays - 1),
-    );
-    return db
-        .collection(kColVehicles)
-        .doc(vehicleId)
-        .collection(kColHistoryRoutes)
-        .where('startAt', isGreaterThanOrEqualTo: Timestamp.fromDate(keepFrom))
-        .orderBy('startAt', descending: true)
-        .snapshots()
-        .map((snap) => snap.docs.map(_routeFromDoc).toList());
   }
 
   /* ================================================================
@@ -1379,22 +1351,6 @@ class MobileUserRepo {
     );
   }
 
-  MobileHistoryRoute _routeFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final Map<String, dynamic> m = doc.data() ?? {};
-    final List rawPoints = (m['points'] as List?) ?? const [];
-    final List<LatLng> points = rawPoints.map((e) {
-      final Map<String, dynamic> p = Map<String, dynamic>.from(e as Map);
-      return LatLng(_asDouble(p['lat'], 0), _asDouble(p['lon'], 0));
-    }).toList();
-    return MobileHistoryRoute(
-      id: doc.id,
-      vehicleId: (m['vehicleId'] ?? '').toString(),
-      startAt: _asDate(m['startAt']),
-      endAt: m['endAt'] == null ? null : _asDate(m['endAt']),
-      points: points,
-    );
-  }
-
   /* ================================================================
    * 13) DEMO HELPERS — seed lists + in-memory stream pushers
    * ================================================================ */
@@ -1422,8 +1378,7 @@ class MobileUserRepo {
         id: 'n2',
         title: 'Low battery warning',
         body:
-            'When battery drops below 20%, the app will prompt you to '
-            'return the vehicle.',
+            'WPlease wait a moementm, we will supply you with a new vehicle shortly.',
         type: kNoticeTypeBatteryLow,
         vehicleId: kDefaultDemoVehicleId,
         sessionId: null,
@@ -1433,22 +1388,6 @@ class MobileUserRepo {
       ),
     );
     return items;
-  }
-
-  List<MobileHistoryRoute> _seedRoutes(String vehicleId) {
-    return [
-      MobileHistoryRoute(
-        id: 'r1',
-        vehicleId: vehicleId,
-        startAt: DateTime.now().subtract(const Duration(hours: 2)),
-        endAt: DateTime.now().subtract(const Duration(hours: 1, minutes: 20)),
-        points: const [
-          LatLng(10.7791, 106.6998),
-          LatLng(10.7780, 106.7041),
-          LatLng(10.7760, 106.6942),
-        ],
-      ),
-    ];
   }
 
   MobileUserProfile _demoProfileFromAccount(_DemoAccount account) {

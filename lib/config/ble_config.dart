@@ -7,6 +7,8 @@
  */
 
 /* Imports ------------------------------------------------------------ */
+import 'feature_conf.dart';
+
 /* Constants ---------------------------------------------------------- */
 const String kBleServiceUuid = 'a0000001-0000-1000-8000-00805f9b34fb';
 const String kBleCharData = 'a0000002-0000-1000-8000-00805f9b34fb';
@@ -27,7 +29,7 @@ const int kBleChData = 0;
 const int kBleChNoti = 1;
 const int kBleChCmdResp = 2;
 
-const Duration kBleScanWindow = Duration(seconds: 8);
+const Duration kBleScanWindow = Duration(seconds: FeatureConfig.BLEScanDurationSeconds);
 const Duration kBleScanGap = Duration(seconds: 25);
 const Duration kBleStartGrace = Duration(seconds: 60);
 

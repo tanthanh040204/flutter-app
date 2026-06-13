@@ -46,6 +46,8 @@ class FeatureConfig {
   /* --- Wallet tunables ----------------------------------------- */
   static const int topupResponseTimeoutSeconds = 20;
 
+  static const int BLEScanDurationSeconds = 5;
+
   /* --- Demo defaults ------------------------------------------- */
   static const String defaultDemoVehicleId = 'V1';
 }

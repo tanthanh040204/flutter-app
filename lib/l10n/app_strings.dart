@@ -232,8 +232,6 @@ class AppStrings {
       ? '$status - $batteryPercent% pin'
       : '$status - $batteryPercent% battery';
 
-  String get routes => vi ? 'Lộ trình' : 'Routes';
-
   String get pricePerHour => vi ? 'Giá thuê 1 giờ' : 'Price per hour';
   String get minimumBalance =>
       vi ? 'Số dư tối thiểu để bắt đầu' : 'Minimum balance to start';
@@ -393,11 +391,6 @@ class AppStrings {
   String get stolenAlertBody => vi
       ? 'Xe đang có dấu hiệu bị di chuyển/lấy cắp. Vui lòng kiểm tra xe ngay.'
       : 'The bike is being moved/tampered with. Please check on it immediately.';
-
-  String get route => vi ? 'Lộ trình' : 'Route';
-  String routeFromTo(String start, String end) =>
-      vi ? 'Lộ trình từ $start đến $end' : 'Route $start to $end';
-  String routeAt(String start) => vi ? 'Lộ trình $start' : 'Route $start';
 
   String errorDescription(String code) {
     switch (code) {

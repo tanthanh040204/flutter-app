@@ -146,7 +146,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
         },
       ),
     );
-    await ble.warmUpFor(vehicleId, timeout: const Duration(seconds: 10));
+    await ble.warmUpFor(vehicleId, timeout: const Duration(seconds: 5));
     if (loadingCtx != null && loadingCtx!.mounted) {
       Navigator.of(loadingCtx!).pop();
     }
