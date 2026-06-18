@@ -1,3 +1,9 @@
+/*
+ * @file       mobile_auth_provider.dart
+ * @brief      Authentication state: login/register/logout and profile stream.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -5,9 +11,15 @@ import 'package:flutter/foundation.dart';
 import '../models/mobile_user_profile.dart';
 import '../services/mobile_user_repo.dart';
 
+/* Constants ---------------------------------------------------------- */
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class MobileAuthProvider extends ChangeNotifier {
   MobileAuthProvider(this._repo);
 
+  /* --- private fields ------------------------------------------ */
   final MobileUserRepo _repo;
   MobileUserProfile? _currentUser;
   StreamSubscription<MobileUserProfile?>? _profileSub;
@@ -15,12 +27,14 @@ class MobileAuthProvider extends ChangeNotifier {
   bool _showOnboarding = true;
   String? _error;
 
+  /* --- public getters ------------------------------------------ */
   MobileUserProfile? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
   bool get loading => _loading;
   bool get showOnboarding => _showOnboarding;
   String? get error => _error;
 
+  /* --- public methods ------------------------------------------ */
   void finishOnboarding() {
     _showOnboarding = false;
     notifyListeners();
@@ -35,7 +49,7 @@ class MobileAuthProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      final user = await _repo.signIn(
+      final MobileUserProfile user = await _repo.signIn(
         identifier: identifier,
         password: password,
         usePhone: usePhone,
@@ -58,12 +72,13 @@ class MobileAuthProvider extends ChangeNotifier {
     required String identifier,
     required String password,
     required bool usePhone,
+    String? phone,
   }) async {
     _loading = true;
     _error = null;
     notifyListeners();
     try {
-      final user = await _repo.register(
+      final MobileUserProfile user = await _repo.register(
         fullName: fullName,
         employeeCode: employeeCode,
         identifier: identifier,
@@ -86,8 +101,8 @@ class MobileAuthProvider extends ChangeNotifier {
     required String currentPassword,
     required String newPassword,
   }) async {
-    final user = _currentUser;
-    if (user == null) throw Exception('Bạn chưa đăng nhập.');
+    final MobileUserProfile? user = _currentUser;
+    if (user == null) throw Exception('You are not signed in.');
     await _repo.changePassword(
       uid: user.uid,
       currentPassword: currentPassword,
@@ -103,6 +118,32 @@ class MobileAuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateLocalBalance(int newBalance) {
+    final MobileUserProfile? user = _currentUser;
+    if (user == null) return;
+    if (newBalance < 0) return;
+    if (user.balance == newBalance) return;
+    _currentUser = user.copyWith(balance: newBalance);
+    notifyListeners();
+  }
+
+  void deductLocalBalance(int amount) {
+    final MobileUserProfile? user = _currentUser;
+    if (user == null) return;
+    if (amount <= 0) return;
+    final int nextBalance = (user.balance - amount).clamp(0, user.balance);
+    if (nextBalance == user.balance) return;
+    _currentUser = user.copyWith(balance: nextBalance);
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _profileSub?.cancel();
+    super.dispose();
+  }
+
+  /* --- private methods ----------------------------------------- */
   Future<void> _bindProfile(String uid) async {
     await _profileSub?.cancel();
     _profileSub = _repo.watchUserProfile(uid).listen((profile) {
@@ -112,10 +153,10 @@ class MobileAuthProvider extends ChangeNotifier {
       }
     });
   }
-
-  @override
-  void dispose() {
-    _profileSub?.cancel();
-    super.dispose();
-  }
 }
+
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

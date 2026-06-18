@@ -1,30 +1,36 @@
+/*
+ * @file       main.dart
+ * @brief      Application entry point. Initializes Firebase + MQTT and wires
+ *             providers.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'config/app_theme.dart';
 import 'firebase_options.dart';
+import 'providers/app_language_provider.dart';
+import 'providers/ble_relay_provider.dart';
 import 'providers/mobile_auth_provider.dart';
 import 'providers/mobile_notice_provider.dart';
 import 'providers/mobile_ride_provider.dart';
 import 'providers/mobile_stations_provider.dart';
+import 'providers/mobile_telemetry_provider.dart';
+import 'providers/mobile_wallet_provider.dart';
 import 'screens/mobile_bootstrap.dart';
+import 'services/app_mode.dart';
 import 'services/mobile_user_repo.dart';
+import 'services/mqtt_service.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+/* Constants ---------------------------------------------------------- */
+const String kAppTitle = 'UTE-go';
 
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (_) {
-    // fallback demo mode
-  }
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
 
-  runApp(const TnGoUserApp());
-}
-
+/* Public classes ----------------------------------------------------- */
 class TnGoUserApp extends StatelessWidget {
   const TnGoUserApp({super.key});
 
@@ -32,38 +38,126 @@ class TnGoUserApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<MobileUserRepo>(
-          create: (_) => MobileUserRepo.instance,
+        Provider<MobileUserRepo>(create: (_) => MobileUserRepo.instance),
+        ChangeNotifierProvider<AppLanguageProvider>(
+          create: (_) => AppLanguageProvider(),
+        ),
+        ChangeNotifierProvider<MqttService>(
+          create: (_) => MqttService(),
+          lazy: false,
+        ),
+        ChangeNotifierProvider<MobileTelemetryProvider>(
+          create: (context) =>
+              MobileTelemetryProvider(context.read<MqttService>()),
+          lazy: false,
         ),
         ChangeNotifierProvider(
-          create: (context) => MobileAuthProvider(
-            context.read<MobileUserRepo>(),
-          ),
+          create: (context) =>
+              MobileAuthProvider(context.read<MobileUserRepo>()),
         ),
         ChangeNotifierProxyProvider<MobileAuthProvider, MobileRideProvider>(
           create: (context) => MobileRideProvider(
+            context.read<MqttService>(),
+            context.read<MobileUserRepo>(),
+            telemetry: context.read<MobileTelemetryProvider>(),
+          ),
+          update: (context, auth, previous) {
+            final MobileRideProvider provider =
+                previous ??
+                MobileRideProvider(
+                  context.read<MqttService>(),
+                  context.read<MobileUserRepo>(),
+                  telemetry: context.read<MobileTelemetryProvider>(),
+                );
+            provider.bindUser(auth.currentUser);
+            return provider;
+          },
+        ),
+        ChangeNotifierProxyProvider<MobileRideProvider, BleRelayProvider>(
+          create: (context) => BleRelayProvider(
+            context.read<MqttService>(),
+            context.read<MobileTelemetryProvider>(),
+          ),
+          update: (context, ride, previous) {
+            final BleRelayProvider provider =
+                previous ??
+                BleRelayProvider(
+                  context.read<MqttService>(),
+                  context.read<MobileTelemetryProvider>(),
+                );
+            provider.bindRide(ride);
+            return provider;
+          },
+        ),
+        ChangeNotifierProxyProvider<MobileAuthProvider, MobileWalletProvider>(
+          create: (context) => MobileWalletProvider(
+            context.read<MqttService>(),
             context.read<MobileUserRepo>(),
           ),
-          update: (context, auth, previous) =>
-              previous!..bindUser(auth.currentUser?.uid),
+          update: (context, auth, previous) {
+            final MobileWalletProvider provider =
+                previous ??
+                MobileWalletProvider(
+                  context.read<MqttService>(),
+                  context.read<MobileUserRepo>(),
+                );
+            provider.attachAuth(auth);
+            provider.attachRide(context.read<MobileRideProvider>());
+            provider.bindUser(auth.currentUser);
+            return provider;
+          },
         ),
         ChangeNotifierProxyProvider<MobileAuthProvider, MobileNoticeProvider>(
-          create: (context) => MobileNoticeProvider(
-            context.read<MobileUserRepo>(),
-          ),
-          update: (context, auth, previous) =>
-              previous!..bindUser(auth.currentUser?.uid),
+          create: (context) =>
+              MobileNoticeProvider(context.read<MobileUserRepo>()),
+          update: (context, auth, previous) {
+            final MobileNoticeProvider provider = previous!
+              ..bindUser(auth.currentUser?.uid);
+            context.read<MobileRideProvider>().attachNotice(provider);
+            return provider;
+          },
         ),
-     ChangeNotifierProvider(
-  create: (_) => MobileStationsProvider(),
-),
+        ChangeNotifierProvider(
+          create: (context) =>
+              MobileStationsProvider(context.read<MobileUserRepo>()),
+        ),
       ],
-      child: MaterialApp(
-        title: 'UTE-go',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const MobileBootstrap(),
+      child: Consumer<AppLanguageProvider>(
+        builder: (context, language, _) {
+          return MaterialApp(
+            title: kAppTitle,
+            debugShowCheckedModeBanner: false,
+            locale: language.locale,
+            theme: AppTheme.lightTheme,
+            home: const MobileBootstrap(),
+          );
+        },
       ),
     );
   }
 }
+
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+
+/* Entry point -------------------------------------------------------- */
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load the persisted backend mode (Online / Local) before the first repo
+  // read so _useLocalDemo routes correctly from the start.
+  await AppMode.load();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (_) {
+    /* fallback demo mode */
+  }
+
+  runApp(const TnGoUserApp());
+}
+
+/* End of file -------------------------------------------------------- */

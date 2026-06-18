@@ -1,32 +1,109 @@
+/*
+ * @file       mobile_stations_tab.dart
+ * @brief      Stations tab: renders a map of bike stations and details sheet.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_strings.dart';
+import '../../models/device_telemetry.dart';
 import '../../models/station.dart';
+import '../../providers/mobile_ride_provider.dart';
 import '../../providers/mobile_stations_provider.dart';
+import '../../providers/mobile_telemetry_provider.dart';
 
-class MobileStationsTab extends StatelessWidget {
+/* Constants ---------------------------------------------------------- */
+const Color kMarkerColor = Color(0xFF1557FF);
+const Color kAccentColor = Color(0xFF1557FF);
+const String kOsmTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const String kUserAgentPkg = 'com.example.UTE-go_user_app';
+const int kBatteryHighThresh = 60;
+const int kBatteryMediumThresh = 25;
+
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
+class MobileStationsTab extends StatefulWidget {
   const MobileStationsTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final stationsProvider = context.watch<MobileStationsProvider>();
-    final stations = stationsProvider.stations;
-    final userPoint = stationsProvider.currentUserLocation;
+  State<MobileStationsTab> createState() => _MobileStationsTabState();
+}
 
-    final center = stations.isNotEmpty ? stations.first.point : userPoint;
+class _MobileStationsTabState extends State<MobileStationsTab> {
+  final MapController _mapController = MapController();
+  /* Tracks the bike we last centred on, so we recenter only once per ride. */
+  String? _focusedBikeId;
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppStrings t = context.tr;
+    final MobileStationsProvider stationsProvider = context
+        .watch<MobileStationsProvider>();
+    final MobileRideProvider ride = context.watch<MobileRideProvider>();
+    final MobileTelemetryProvider telemetry = context
+        .watch<MobileTelemetryProvider>();
+
+    final List<BikeStation> stations = stationsProvider.stations;
+    final LatLng userPoint = stationsProvider.currentUserLocation;
+
+    /* While renting, overlay the rented bike's live position + travelled
+     * route. Outside a rental the map behaves exactly as before. */
+    final bool renting = ride.hasActiveSession && ride.currentBikeId != null;
+    final String? bikeId = renting ? ride.currentBikeId : null;
+    final DeviceTelemetry? tm = bikeId != null
+        ? telemetry.telemetryFor(bikeId)
+        : null;
+    final LatLng? bikePoint = (tm?.lat != null && tm?.lng != null)
+        ? LatLng(tm!.lat!, tm.lng!)
+        : null;
+    final List<LatLng> bikePath = bikeId != null
+        ? telemetry.pathFor(bikeId)
+        : const [];
+
+    if (renting && bikePoint != null && _focusedBikeId != bikeId) {
+      _focusedBikeId = bikeId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _mapController.move(bikePoint, 16);
+      });
+    }
+    if (!renting) _focusedBikeId = null;
+
+    final LatLng center =
+        bikePoint ?? (stations.isNotEmpty ? stations.first.point : userPoint);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trạm xe')),
+      appBar: AppBar(title: Text(t.stations)),
       body: FlutterMap(
+        mapController: _mapController,
         options: MapOptions(initialCenter: center, initialZoom: 15.2),
         children: [
           TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.UTE-go_user_app',
+            urlTemplate: kOsmTileUrl,
+            userAgentPackageName: kUserAgentPkg,
           ),
+          if (bikePath.length >= 2)
+            PolylineLayer(
+              polylines: [
+                Polyline(
+                  points: bikePath,
+                  strokeWidth: 5,
+                  color: kAccentColor,
+                ),
+              ],
+            ),
           MarkerLayer(
             markers: [
               Marker(
@@ -50,6 +127,14 @@ class MobileStationsTab extends StatelessWidget {
                   ),
                 ),
               ),
+              if (bikePoint != null)
+                Marker(
+                  point: bikePoint,
+                  width: 54,
+                  height: 54,
+                  alignment: Alignment.topCenter,
+                  child: const _RentedBikeMarker(),
+                ),
             ],
           ),
         ],
@@ -58,7 +143,7 @@ class MobileStationsTab extends StatelessWidget {
         onPressed: () =>
             context.read<MobileStationsProvider>().refreshUserLocation(),
         icon: const Icon(Icons.refresh),
-        label: const Text('Cập nhật'),
+        label: Text(t.refresh),
       ),
     );
   }
@@ -76,9 +161,12 @@ class MobileStationsTab extends StatelessWidget {
         initialChildSize: 0.55,
         minChildSize: 0.35,
         maxChildSize: 0.85,
-        builder: (context, scrollController) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: ListView(
+        builder: (context, scrollController) {
+          final AppStrings t = context.tr;
+
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: ListView(
             controller: scrollController,
             children: [
               Text(
@@ -86,7 +174,7 @@ class MobileStationsTab extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1557FF),
+                  color: kAccentColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -99,14 +187,14 @@ class MobileStationsTab extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _StationStat(
-                      label: 'Xe còn',
+                      label: t.bikesAvailable,
                       value: station.bikeCount.toString(),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _StationStat(
-                      label: 'Chỗ trống',
+                      label: t.freeSlots,
                       value: station.availableSlots.toString(),
                     ),
                   ),
@@ -117,17 +205,17 @@ class MobileStationsTab extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () async {
-                    final uri = Uri.parse(station.googleMapUrl);
+                    final Uri uri = Uri.parse(station.googleMapUrl);
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   },
                   icon: const Icon(Icons.map_outlined),
-                  label: const Text('Mở Google Maps'),
+                  label: Text(t.openGoogleMaps),
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Danh sách xe tại trạm',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              Text(
+                t.bikesAtStation,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
               ...station.vehicles.map(
@@ -143,7 +231,7 @@ class MobileStationsTab extends StatelessWidget {
                     children: [
                       const Icon(
                         Icons.pedal_bike,
-                        color: Color(0xFF1557FF),
+                        color: kAccentColor,
                         size: 28,
                       ),
                       const SizedBox(width: 12),
@@ -160,7 +248,7 @@ class MobileStationsTab extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${bike.status} - ${bike.batteryPercent}% pin',
+                              t.bikeBatteryText(bike.status, bike.batteryPercent),
                               style: TextStyle(
                                 color: _batteryColor(bike.batteryPercent),
                                 fontWeight: FontWeight.w600,
@@ -173,17 +261,35 @@ class MobileStationsTab extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
   Color _batteryColor(int percent) {
-    if (percent >= 60) return Colors.green;
-    if (percent >= 25) return Colors.orange;
+    if (percent >= kBatteryHighThresh) return Colors.green;
+    if (percent >= kBatteryMediumThresh) return Colors.orange;
     return Colors.red;
+  }
+}
+
+/* Private classes ---------------------------------------------------- */
+class _RentedBikeMarker extends StatelessWidget {
+  const _RentedBikeMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Icon(
+      Icons.location_pin,
+      color: Color(0xFF1F2A44),
+      size: 48,
+      shadows: [
+        Shadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
+      ],
+    );
   }
 }
 
@@ -202,7 +308,7 @@ class _StationMarker extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: const BoxDecoration(
-            color: Color(0xFF1557FF),
+            color: kMarkerColor,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
@@ -260,7 +366,7 @@ class _StationStat extends StatelessWidget {
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF1557FF),
+              color: kAccentColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -270,3 +376,8 @@ class _StationStat extends StatelessWidget {
     );
   }
 }
+
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

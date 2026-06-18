@@ -1,5 +1,16 @@
+/*
+ * @file       rental_vehicle.dart
+ * @brief      Data model describing a rentable electric vehicle.
+ */
+
+/* Imports ------------------------------------------------------------ */
 import 'package:latlong2/latlong.dart';
 
+/* Constants ---------------------------------------------------------- */
+/* Enums -------------------------------------------------------------- */
+/* Typedef / Function types ------------------------------------------ */
+
+/* Public classes ----------------------------------------------------- */
 class RentalVehicle {
   final String id;
   final String name;
@@ -35,3 +46,9 @@ class RentalVehicle {
     required this.updatedAt,
   });
 }
+
+/* Private classes ---------------------------------------------------- */
+/* Public functions --------------------------------------------------- */
+/* Private functions -------------------------------------------------- */
+/* Entry point -------------------------------------------------------- */
+/* End of file -------------------------------------------------------- */

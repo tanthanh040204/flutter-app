@@ -1,4 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- BLE relay to the bike tracker (flutter_blue_plus). The plugin
+         runtime-requests these on first scan/connect; they only need to be
+         declared here. BLE is optional (gated by FeatureConfig.enableBleRelay),
+         so the hardware feature is not required. -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <!-- Android 12+ (API 31+). neverForLocation: scan results are matched by
+         advertised name, not used to derive physical location. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Android 11 and below (API <= 30): legacy BT + scan needs fine location. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+    <!-- Foreground service keeps the app + MQTT alive during an active rental
+         (flutter_foreground_task, dataSync type). FOREGROUND_SERVICE,
+         WAKE_LOCK and POST_NOTIFICATIONS are merged in from the plugin. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <application
         android:label="UTE-go"
         android:name="${applicationName}"
@@ -25,6 +43,11 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- flutter_foreground_task service. Do not change the name. -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
