@@ -90,11 +90,19 @@ class TnGoUserApp extends StatelessWidget {
           },
         ),
         ChangeNotifierProxyProvider<MobileAuthProvider, MobileWalletProvider>(
-          create: (context) =>
-              MobileWalletProvider(context.read<MqttService>()),
+          create: (context) => MobileWalletProvider(
+            context.read<MqttService>(),
+            context.read<MobileUserRepo>(),
+          ),
           update: (context, auth, previous) {
             final MobileWalletProvider provider =
-                previous ?? MobileWalletProvider(context.read<MqttService>());
+                previous ??
+                MobileWalletProvider(
+                  context.read<MqttService>(),
+                  context.read<MobileUserRepo>(),
+                );
+            provider.attachAuth(auth);
+            provider.attachRide(context.read<MobileRideProvider>());
             provider.bindUser(auth.currentUser);
             return provider;
           },

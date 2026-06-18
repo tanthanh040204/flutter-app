@@ -38,7 +38,9 @@ class MobileRideProvider extends ChangeNotifier {
     this._mqtt,
     this._repo, {
     MobileTelemetryProvider? telemetry,
-  }) : _telemetry = telemetry;
+  }) : _telemetry = telemetry {
+    _mqtt.addListener(_onMqttChanged);
+  }
 
   /* --- private fields ------------------------------------------ */
   final MqttService _mqtt;
@@ -56,6 +58,7 @@ class MobileRideProvider extends ChangeNotifier {
   // Total bill = (initial hours + extra hours) * pricePerHour
   int _consumedAtPhaseStart = 0;
   int _selectedRentalHours = 1;
+  bool _needStatusConfirm = false;
 
   /* --- public fields ------------------------------------------- */
   RentalPhase phase = RentalPhase.idle;
@@ -255,7 +258,8 @@ class MobileRideProvider extends ChangeNotifier {
   }
 
   void clearDebt() {
-    final bool hadDebt = debtAmount != 0 ||
+    final bool hadDebt =
+        debtAmount != 0 ||
         warning == kEvtWarnDebt ||
         warning == kEvtRentalNotiLimit;
     if (!hadDebt) return;
@@ -272,8 +276,17 @@ class MobileRideProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /* Apply the user's outstanding debt fetched from the web at login, so the
+   * home UI (which reads debtAmount) reflects it before any ride starts. */
+  void setExternalDebt(int debt) {
+    if (debtAmount == debt) return;
+    debtAmount = debt;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
+    _mqtt.removeListener(_onMqttChanged);
     _webAppSub?.cancel();
     _notiSub?.cancel();
     _timer?.cancel();
@@ -296,6 +309,7 @@ class MobileRideProvider extends ChangeNotifier {
     _bikeId = null;
     _startedAt = null;
     _consumedAtPhaseStart = 0;
+    _needStatusConfirm = false;
     phase = RentalPhase.idle;
     lastBill = null;
     lastError = null;
@@ -334,6 +348,33 @@ class MobileRideProvider extends ChangeNotifier {
       );
     }
     notifyListeners();
+
+    _queryRentalStatus(snap.bikeId, wireUserId);
+  }
+
+  void _queryRentalStatus(String bikeId, String wireUserId) {
+    final bool ok = _mqtt.publish(
+      MqttTopics.appToWeb(bikeId),
+      ProtocolCodec.build(kCmdQueryStatus, [wireUserId]),
+    );
+
+    _needStatusConfirm = !ok;
+    if (FeatureConfig.debugRideLog) {
+      debugPrint('[Ride] QUERY_STATUS sent bike=$bikeId published=$ok');
+    }
+  }
+
+  void _onMqttChanged() {
+    if (!_needStatusConfirm || !_mqtt.isConnected) return;
+    final String? bikeId = _bikeId;
+    final String? wireUserId = _wireUserId;
+    if (bikeId == null ||
+        wireUserId == null ||
+        (phase != RentalPhase.running && phase != RentalPhase.paused)) {
+      _needStatusConfirm = false;
+      return;
+    }
+    _queryRentalStatus(bikeId, wireUserId);
   }
 
   void _persistSnapshot() {
@@ -391,7 +432,9 @@ class MobileRideProvider extends ChangeNotifier {
   void _subscribeDeviceNoti(String bikeId) {
     _notiSub?.cancel();
     if (FeatureConfig.debugRideLog) {
-      debugPrint('[Ride] subscribe noti topic: ${MqttTopics.deviceNoti(bikeId)}');
+      debugPrint(
+        '[Ride] subscribe noti topic: ${MqttTopics.deviceNoti(bikeId)}',
+      );
     }
     _notiSub = _mqtt
         .streamOf(MqttTopics.deviceNoti(bikeId))
@@ -427,6 +470,9 @@ class MobileRideProvider extends ChangeNotifier {
         break;
       case kEvtEndRental:
         _onEndRental(msg);
+        break;
+      case kEvtNoActiveRental:
+        _onNoActiveRental(msg);
         break;
       case kEvtRentalErr:
         _onRentalErr(msg);
@@ -518,6 +564,17 @@ class MobileRideProvider extends ChangeNotifier {
     _pauseTimeoutTimer?.cancel();
     _clearSnapshot();
     _stopForeground();
+    notifyListeners();
+  }
+
+  void _onNoActiveRental(ProtocolMessage msg) {
+    if (msg.argAt(0) != _wireUserId) return;
+    if (phase != RentalPhase.running && phase != RentalPhase.paused) return;
+    if (FeatureConfig.debugRideLog) {
+      debugPrint('[Ride] NO_ACTIVE_RENTAL — clearing stale restored session');
+    }
+    _clearSnapshot();
+    _resetAll();
     notifyListeners();
   }
 

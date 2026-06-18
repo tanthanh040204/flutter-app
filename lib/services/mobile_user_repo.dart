@@ -191,6 +191,10 @@ class MobileUserRepo {
       _useLocalDemo ? null : FirebaseFirestore.instance;
   FirebaseAuth? get _auth => _useLocalDemo ? null : FirebaseAuth.instance;
 
+  /* True when running on the in-memory local/demo backend (no cloud / no web).
+   * Callers can skip cloud-dependent gates (e.g. the login money sync). */
+  bool get isLocalMode => _useLocalDemo;
+
   /* ================================================================
    *  Demo seed data (stations, parking zones)
    * ================================================================ */
@@ -516,6 +520,18 @@ class MobileUserRepo {
       if (!doc.exists) return null;
       return _profileFromDoc(doc);
     });
+  }
+
+  /* Reconcile the locally-shown balance (users/{uid}) with an authoritative
+   * value — the web's rental balance synced over MQTT on login. The profile
+   * stream then propagates it to the UI. No-op in local/demo mode. */
+  Future<void> setUserBalance(String uid, int balance) async {
+    final FirebaseFirestore? db = _db;
+    if (db == null) return;
+    await db.collection(kColUsers).doc(uid).set({
+      'balance': balance,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   /* ================================================================

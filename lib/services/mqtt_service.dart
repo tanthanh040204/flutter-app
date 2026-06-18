@@ -112,7 +112,7 @@ class MqttService extends ChangeNotifier {
     /* Re-subscribe any topics that were added before the connection was up. */
     for (final String topic in _subscribedTopics) {
       _log('[MQTT] re-subscribe after connect - topic: $topic');
-      client.subscribe(topic, MqttQos.atLeastOnce);
+      client.subscribe(topic, _qosFor(topic));
     }
 
     notifyListeners();
@@ -157,13 +157,21 @@ class MqttService extends ChangeNotifier {
     return ctl.stream;
   }
 
+  MqttQos _qosFor(String topic) =>
+      (topic.endsWith('/app_web') ||
+          topic.endsWith('/web_app') ||
+          topic.endsWith('/request') ||
+          topic.endsWith('/response'))
+      ? MqttQos.exactlyOnce
+      : MqttQos.atLeastOnce;
+
   void _ensureSubscribed(String topic) {
     if (_subscribedTopics.contains(topic)) return;
     _subscribedTopics.add(topic);
     _log('[MQTT] register stream - topic: $topic, connected=$isConnected');
     if (isConnected) {
       _log('[MQTT] subscribe - topic: $topic');
-      _client!.subscribe(topic, MqttQos.atLeastOnce);
+      _client!.subscribe(topic, _qosFor(topic));
     }
   }
 
@@ -187,7 +195,7 @@ class MqttService extends ChangeNotifier {
     final MqttClientPayloadBuilder builder = MqttClientPayloadBuilder();
     builder.addString(payload);
     _log('[MQTT] publish - topic: $topic payload: $payload');
-    _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
+    _client!.publishMessage(topic, _qosFor(topic), builder.payload!);
     return true;
   }
 
@@ -223,7 +231,7 @@ class MqttService extends ChangeNotifier {
     _log('[MQTT] callback onAutoReconnected - clientId: $_clientId');
     for (final String topic in _subscribedTopics) {
       _log('[MQTT] auto re-subscribe - topic: $topic');
-      _client?.subscribe(topic, MqttQos.atLeastOnce);
+      _client?.subscribe(topic, _qosFor(topic));
     }
   }
 
