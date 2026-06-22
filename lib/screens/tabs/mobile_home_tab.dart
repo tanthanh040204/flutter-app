@@ -48,7 +48,7 @@ class MobileHomeTab extends StatefulWidget {
 /* Private classes ---------------------------------------------------- */
 class _MobileHomeTabState extends State<MobileHomeTab> {
   bool _billShown = false;
-  int _lastBlocksDeducted = 0;
+  int _mirroredBill = 0;
   /* Set after the deposit is debited on the first running transition.
    * Prevents resume (paused → running) from re-charging it. */
   bool _startDeductionDone = false;
@@ -161,16 +161,16 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     if (ride.phase == RentalPhase.running && !_startDeductionDone) {
       final int deposit = ride.pricing.depositAmount;
       _startDeductionDone = true;
+      _mirroredBill = deposit;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         auth.deductLocalBalance(deposit);
       });
     }
 
-    if (ride.hasActiveSession && ride.blocksConsumed > _lastBlocksDeducted) {
-      final int newBlocks = ride.blocksConsumed - _lastBlocksDeducted;
-      final int amount = newBlocks * ride.pricing.pricePerHour;
-      _lastBlocksDeducted = ride.blocksConsumed;
+    if (ride.hasActiveSession && ride.billedAmount > _mirroredBill) {
+      final int amount = ride.billedAmount - _mirroredBill;
+      _mirroredBill = ride.billedAmount;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         auth.deductLocalBalance(amount);
@@ -187,7 +187,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
     }
 
     if (ride.phase == RentalPhase.idle) {
-      if (_lastBlocksDeducted != 0) _lastBlocksDeducted = 0;
+      if (_mirroredBill != 0) _mirroredBill = 0;
       if (_billShown) _billShown = false;
       if (_startDeductionDone) _startDeductionDone = false;
     }
@@ -863,9 +863,7 @@ class _MobileHomeTabState extends State<MobileHomeTab> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => _openExternalUrl(kTuoiTreVehicleUrl),
-                          icon: const Icon(
-                            Icons.directions_bike_outlined,
-                          ),
+                          icon: const Icon(Icons.directions_bike_outlined),
                           label: Text(t.openTrafficNews),
                         ),
                       ),

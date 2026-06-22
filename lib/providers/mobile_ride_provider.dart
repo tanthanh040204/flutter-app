@@ -59,6 +59,8 @@ class MobileRideProvider extends ChangeNotifier {
   int _consumedAtPhaseStart = 0;
   int _selectedRentalHours = 1;
   bool _needStatusConfirm = false;
+  int _authBlocks = 0;
+  int _billedAmount = 0;
 
   /* --- public fields ------------------------------------------- */
   RentalPhase phase = RentalPhase.idle;
@@ -109,8 +111,8 @@ class MobileRideProvider extends ChangeNotifier {
 
   bool get isOverdue => overdueSeconds > 0;
 
-  int get blocksConsumed =>
-      _totalConsumedSeconds() ~/ FeatureConfig.rentalBillingBlockSeconds;
+  int get blocksConsumed => _authBlocks;
+  int get billedAmount => _billedAmount;
 
   int get selectedRentalHours => _selectedRentalHours;
   int get selectedUsageFee => pricing.pricePerHour * _selectedRentalHours;
@@ -309,6 +311,8 @@ class MobileRideProvider extends ChangeNotifier {
     _bikeId = null;
     _startedAt = null;
     _consumedAtPhaseStart = 0;
+    _authBlocks = 0;
+    _billedAmount = 0;
     _needStatusConfirm = false;
     phase = RentalPhase.idle;
     lastBill = null;
@@ -501,7 +505,23 @@ class MobileRideProvider extends ChangeNotifier {
         /* DEBT_CLEAR — debt fully repaid mid-rental, dismiss debt UI. */
         clearDebt();
         break;
+      case kEvtBlockTick:
+        _onBlockTick(msg);
+        break;
     }
+  }
+
+  void _onBlockTick(ProtocolMessage msg) {
+    if (phase != RentalPhase.running && phase != RentalPhase.paused) return;
+    _authBlocks = int.tryParse(msg.argAt(0) ?? '') ?? _authBlocks;
+    _billedAmount = int.tryParse(msg.argAt(1) ?? '') ?? _billedAmount;
+    final int elapsedBlocks = _authBlocks > 0 ? _authBlocks - 1 : 0;
+    _consumedAtPhaseStart =
+        elapsedBlocks * FeatureConfig.rentalBillingBlockSeconds;
+    _startedAt = DateTime.now();
+    _restartTicker();
+    _persistSnapshot();
+    notifyListeners();
   }
 
   void _onStartSuccess(ProtocolMessage msg) {
@@ -511,6 +531,8 @@ class MobileRideProvider extends ChangeNotifier {
     _startedAt ??= DateTime.now();
     phase = RentalPhase.running;
     _consumedAtPhaseStart = 0;
+    _authBlocks = 0;
+    _billedAmount = 0;
     _restartTicker();
     _persistSnapshot();
     _startForeground();
