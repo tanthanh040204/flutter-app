@@ -559,6 +559,7 @@ class MobileRideProvider extends ChangeNotifier {
     _pauseTimeoutTimer = null;
     _restartTicker();
     _persistSnapshot();
+    setDangerNoti(true);
     notifyListeners();
   }
 
