@@ -133,7 +133,10 @@ class _MobileStationsTabState extends State<MobileStationsTab> {
                   width: 54,
                   height: 54,
                   alignment: Alignment.topCenter,
-                  child: const _RentedBikeMarker(),
+                  child: GestureDetector(
+                    onTap: () => _showBikeSheet(context, bikePoint),
+                    child: const _RentedBikeMarker(),
+                  ),
                 ),
             ],
           ),
@@ -266,6 +269,36 @@ class _MobileStationsTabState extends State<MobileStationsTab> {
           );
         },
       ),
+    );
+  }
+
+  Future<void> _showBikeSheet(BuildContext context, LatLng point) async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final AppStrings t = context.tr;
+
+        return Center(
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+              textStyle: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              final Uri uri = Uri.parse(
+                'https://www.google.com/maps/dir/?api=1&destination=${point.latitude},${point.longitude}',
+              );
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            },
+            icon: const Icon(Icons.directions),
+            label: Text(t.directions),
+          ),
+        );
+      },
     );
   }
 

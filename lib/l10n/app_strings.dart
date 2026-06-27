@@ -226,6 +226,7 @@ class AppStrings {
   String get bikesAvailable => vi ? 'Xe còn' : 'Bikes';
   String get freeSlots => vi ? 'Chỗ trống' : 'Free slots';
   String get openGoogleMaps => vi ? 'Mở Google Maps' : 'Open Google Maps';
+  String get directions => vi ? 'Dẫn đường' : 'Directions';
   String get bikesAtStation =>
       vi ? 'Danh sách xe tại trạm' : 'Bikes at station';
   String bikeBatteryText(String status, int batteryPercent) => vi
